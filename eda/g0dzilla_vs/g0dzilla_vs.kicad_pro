@@ -360,7 +360,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "godzilla_vs.kicad_pro",
+    "filename": "g0dzilla_vs.kicad_pro",
     "version": 1
   },
   "net_settings": {
@@ -394,7 +394,7 @@
     "last_paths": {
       "gencad": "",
       "idf": "",
-      "netlist": "godzilla_vs.net",
+      "netlist": "g0dzilla_vs.net",
       "specctra_dsn": "",
       "step": "",
       "vrml": ""

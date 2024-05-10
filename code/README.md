@@ -195,11 +195,11 @@ Take note of the COM port since we will need that to communicate with it later
 
 At this point we should be ready to compile and upload code to the badge ESP32 board.
 
-In the following examples we will be referencing the sketch ```godzilla_vs_01``` code so you will need to change this for whichever sketch you wish to use.
+In the following examples we will be referencing the sketch ```g0dzilla_vs_01``` code so you will need to change this for whichever sketch you wish to use.
 
 The following command will compile the named sketch for use with our board fqbn
 ```
-arduino-cli --config-file arduino-cli.yml compile --fqbn esp32:esp32:esp32 --build-path _build --export-binaries godzilla_vs_01 --build-property build.partitions=min_spiffs --build-property upload.maximum_size=1966080
+arduino-cli --config-file arduino-cli.yml compile --fqbn esp32:esp32:esp32 --build-path _build --export-binaries g0dzilla_vs_01 --build-property build.partitions=min_spiffs --build-property upload.maximum_size=1966080
 ```
 
 The arg ```--build-path _build``` is optional to have it put all build artifacts here instead of temp for ease of troubleshooting.
@@ -231,7 +231,7 @@ To simplify the above we have created a bash script named ```cli-compile.sh``` t
 
 To perform the compile via the script execute it in the code directory
 ```
-bash ./cli-compile.sh godzilla_vs_01
+bash ./cli-compile.sh g0dzilla_vs_01
 ```
 
 ## Upload code via CLI
@@ -243,7 +243,7 @@ The code we have written here may include binaries which can be used without com
 
 The following command will upload the named sketch binary to the badge
 ```
-arduino-cli --config-file arduino-cli.yml upload -p COM4 --fqbn esp32:esp32:esp32 --input-file godzilla_vs_01/build/esp32.esp32.esp32/godzilla_vs_01.ino.bin
+arduino-cli --config-file arduino-cli.yml upload -p COM4 --fqbn esp32:esp32:esp32 --input-file g0dzilla_vs_01/build/esp32.esp32.esp32/g0dzilla_vs_01.ino.bin
 ```
 
 NOTE: Saving the compiled binary in a defined place and uploading from an input file allows for quickly changing between different code without the need to compile each again.
@@ -288,7 +288,7 @@ To simplify the above we have created a bash script named ```cli-upload.sh``` th
 
 To perform the compile via the script execute it in the code directory
 ```
-bash ./cli-upload.sh godzilla_vs_01 COM4
+bash ./cli-upload.sh g0dzilla_vs_01 COM4
 ```
 
 ## Monitor Serial Output

@@ -4,7 +4,7 @@
 ## VARIABLE DEFAULTS
 ########################################
 BoardSerial="not-set"
-CodeSketch="godzilla_vs_01"
+CodeSketch="g0dzilla_vs_01"
 
 ########################################
 ## COLOR TEXT SETUP
