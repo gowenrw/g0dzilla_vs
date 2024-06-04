@@ -4,7 +4,14 @@
     (thickness 1.6)
   )
 
-  (paper "A4")
+  (paper "USLetter" portrait)
+  (title_block
+    (title "G0dzilla_VS")
+    (date "2024-06-03")
+    (rev "1")
+    (company "Crafted by @alt_bier a.k.a. Richard Gowen and his Badge Team")
+  )
+
   (layers
     (0 "F.Cu" signal)
     (31 "B.Cu" signal)
