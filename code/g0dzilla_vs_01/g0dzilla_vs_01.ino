@@ -9,38 +9,47 @@
 #include <esp_wifi_types.h>
 #include <esp_wifi.h>
 // Include Games Library
-#include <g0dzilla_vs_lib.h>
+//#include <g0dzilla_vs_lib.h>
 
 // Pin Definitions
 //
 // NeoPixel Data Pins
 #define NEO01_DATA 17
 #define NEO02_DATA 16
+// D10 Breath
+// D11 Eye-Left
+// D12 Eye-Right
+// D13 Tail-Top
+// D20 Back-Top
+// D21 Back-Mid
+// D22 Back-Bot
+// D23 Tail-Bot
 //
 // One color LED Pins
-#define LED_D1 33  // White - Left Dino no hat
-#define LED_D2 32  // White - Right Dino hat
-#define LED_D3 14  // Blue - Clubs 10
-#define LED_D4 27  // Red - Hearts J
-#define LED_D5 26  // Blue - Spades Q
-#define LED_D6 25  // Red - Diamonds K
+#define LED_D1 32  // Breath
+#define LED_D2 25  // Back-Top
+#define LED_D3 27  // Back-Bot
+#define LED_D4 14  // Tail
+#define LED_D5 26  // Stomp
+#define LED_D6 33  // Nuke
+#define LED_D7 12  // Navy
+#define LED_D8 5   // Army
 //
 // Built-in LED
 #define LED_BI 22
 
 //
 // Capacitive Touch Pins
-#define TCH01_PIN 4  // Dinosaurs
-#define TCH02_PIN 2  // Logo
-#define TCH03_PIN 15 // 3000
-#define TCH04_PIN 13 // Society
-#define TCH05_PIN 12 // Cowboys
+#define TCH01_PIN 4  // Monarch
+#define TCH02_PIN 2  // Godzilla
+#define TCH03_PIN 15 // VS
+#define TCH04_PIN 13 // Minus-One
 
 // NeoPixel Properties
 //
 // Define NeoPixel Strips - (Num pixels, pin to send signals, pixel type, signal rate)
-Adafruit_NeoPixel NEO01 = Adafruit_NeoPixel(3, NEO01_DATA, NEO_RGB + NEO_KHZ800);
-Adafruit_NeoPixel NEO02 = Adafruit_NeoPixel(3, NEO02_DATA, NEO_RGB + NEO_KHZ800);
+Adafruit_NeoPixel NEO01 = Adafruit_NeoPixel(4, NEO01_DATA, NEO_RGB + NEO_KHZ800);
+Adafruit_NeoPixel NEO02 = Adafruit_NeoPixel(4, NEO02_DATA, NEO_RGB + NEO_KHZ800);
 // Status NeoPixel LED color mode default=0 green=1 blue=2 red=3
 int status_neo_mode = 0;
 
@@ -57,6 +66,8 @@ const int LED_D3_pwm = 3;
 const int LED_D4_pwm = 4;
 const int LED_D5_pwm = 5;
 const int LED_D6_pwm = 6;
+const int LED_D7_pwm = 7;
+const int LED_D8_pwm = 8;
 
 // Wireless Properties
 //
@@ -81,13 +92,11 @@ int Touch01_Threshold = 19;
 int Touch02_Threshold = 19;
 int Touch03_Threshold = 19;
 int Touch04_Threshold = 19;
-int Touch05_Threshold = 19;
 // Touch Initial Values
 int Touch01_Value = 21;
 int Touch02_Value = 21;
 int Touch03_Value = 21;
 int Touch04_Value = 21;
-int Touch05_Value = 21;
 //
 // Touch Counters
 //
@@ -96,19 +105,16 @@ int Touch01_IntCount = 0;
 int Touch02_IntCount = 0;
 int Touch03_IntCount = 0;
 int Touch04_IntCount = 0;
-int Touch05_IntCount = 0;
 // Touch Loop Counter
 int Touch01_LoopCount = 0;
 int Touch02_LoopCount = 0;
 int Touch03_LoopCount = 0;
 int Touch04_LoopCount = 0;
-int Touch05_LoopCount = 0;
 // Touch Loop Threshold (Touch Held for X Loops of Main)
 int Touch01_Loop_Threshold = 3;
 int Touch02_Loop_Threshold = 3;
 int Touch03_Loop_Threshold = 3;
 int Touch04_Loop_Threshold = 3;
-int Touch05_Loop_Threshold = 3;
 
 // Loop Control Properties
 //
@@ -153,6 +159,8 @@ void setup(){
   ledcSetup(LED_D4_pwm, freq, resolution);
   ledcSetup(LED_D5_pwm, freq, resolution);
   ledcSetup(LED_D6_pwm, freq, resolution);
+  ledcSetup(LED_D7_pwm, freq, resolution);
+  ledcSetup(LED_D8_pwm, freq, resolution);
 
   // Attach the channel to the GPIO to be controlled
   if (DebugSerial >= 2) {
@@ -164,6 +172,17 @@ void setup(){
   ledcAttachPin(LED_D4, LED_D4_pwm);
   ledcAttachPin(LED_D5, LED_D5_pwm);
   ledcAttachPin(LED_D6, LED_D6_pwm);
+  ledcAttachPin(LED_D7, LED_D7_pwm);
+  ledcAttachPin(LED_D8, LED_D8_pwm);
+  // ledcAttachChannel(LED_D1, freq, resolution, LED_D1_pwm);
+  // ledcAttachChannel(LED_D2, freq, resolution, LED_D2_pwm);
+  // ledcAttachChannel(LED_D3, freq, resolution, LED_D3_pwm);
+  // ledcAttachChannel(LED_D4, freq, resolution, LED_D4_pwm);
+  // ledcAttachChannel(LED_D5, freq, resolution, LED_D5_pwm);
+  // ledcAttachChannel(LED_D6, freq, resolution, LED_D6_pwm);
+  // ledcAttachChannel(LED_D7, freq, resolution, LED_D7_pwm);
+  // ledcAttachChannel(LED_D8, freq, resolution, LED_D8_pwm);
+  // bool ledcAttachChannel(uint8_t pin, uint32_t freq, uint8_t resolution, uint8_t channel);
 
   //Normal LED output
   if (DebugSerial >= 2) {
@@ -213,8 +232,6 @@ void loop(){
   if ( (Touch03_Value / Touch03_Threshold) > 2 ) { Touch03_Threshold = int(Touch03_Threshold * 1.8); }
   Touch04_Value = touchRead(TCH04_PIN);
   if ( (Touch04_Value / Touch04_Threshold) > 2 ) { Touch04_Threshold = int(Touch04_Threshold * 1.8); }
-  Touch05_Value = touchRead(TCH05_PIN);
-  if ( (Touch05_Value / Touch05_Threshold) > 2 ) { Touch05_Threshold = int(Touch05_Threshold * 1.8); }
 
   // //////////////////////////////////
   //     START OF ITERATION LOOP
@@ -235,11 +252,11 @@ void loop(){
     // TOUCH
     //
     // Read Touch Values
-    Touch01_Value = touchRead(TCH01_PIN); // Dinosaurs
-    Touch02_Value = touchRead(TCH02_PIN); // Logo
-    Touch03_Value = touchRead(TCH03_PIN); // 3000
-    Touch04_Value = touchRead(TCH04_PIN); // Society
-    Touch05_Value = touchRead(TCH05_PIN); // Cowboys
+    Touch01_Value = touchRead(TCH01_PIN); // Monarch
+    Touch02_Value = touchRead(TCH02_PIN); // Godzilla
+    Touch03_Value = touchRead(TCH03_PIN); // VS
+    Touch04_Value = touchRead(TCH04_PIN); // Minus-One
+    //
     // **************************************************************
     //
     // Do Stuff If We Detect a Touch on TCH01_PIN
@@ -257,7 +274,8 @@ void loop(){
       }
       // Put stuff to happen every iteration here
       Touch01_IntCount = 1;
-      touchedDinosaurs();
+      //
+      //touchedDinosaurs();
     //
     // Do Stuff If We DONT Detect a Touch on TCH01_PIN
     } else {
@@ -287,6 +305,8 @@ void loop(){
       }
       // Put stuff to happen every iteration here
       Touch02_IntCount = 1;
+      //
+      //
     //
     // Do Stuff If We DONT Detect a Touch on TCH02_PIN
     } else {
@@ -317,7 +337,7 @@ void loop(){
       // Put stuff to happen every iteration here
       Touch03_IntCount = 1;
       //
-      touched3000();
+      //touched3000();
     //
     // Do Stuff If We DONT Detect a Touch on TCH03_PIN
     } else {
@@ -347,6 +367,8 @@ void loop(){
       }
       // Put stuff to happen every iteration here
       Touch04_IntCount = 1;
+      //
+      //
     //
     // Do Stuff If We DONT Detect a Touch on TCH04_PIN
     } else {
@@ -361,34 +383,6 @@ void loop(){
     }
     // **************************************************************
     //
-    // Do Stuff If We Detect a Touch on TCH05_PIN
-    if (Touch05_Value < Touch05_Threshold) {
-      // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
-      if (DebugSerial >= 2) {
-        Serial.print(" T05_TOUCH="); Serial.print(Touch05_Value);
-        Serial.print("/"); Serial.print(Touch05_Threshold);
-        Serial.print("-"); Serial.print(Touch05_IntCount);
-        Serial.print("/"); Serial.print(Touch05_LoopCount);
-      }
-      // STUFF - TCH05_PIN TOUCHED
-      if (Touch05_IntCount == 0){
-        // Put stuff to happen once per iteration loop here
-      }
-      // Put stuff to happen every iteration here
-      Touch05_IntCount = 1;
-      touchedCowboys();
-    //
-    // Do Stuff If We DONT Detect a Touch on TCH05_PIN
-    } else {
-      // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
-      if (DebugSerial >= 2) {
-        Serial.print(" T05="); Serial.print(Touch05_Value);
-        Serial.print("/"); Serial.print(Touch05_Threshold);
-        Serial.print("-"); Serial.print(Touch05_IntCount);
-        Serial.print("/"); Serial.print(Touch05_LoopCount);
-      }
-      // STUFF - TCH05_PIN NOT TOUCHED
-    }
 
     //
     // DEFAULT MODE
@@ -397,35 +391,32 @@ void loop(){
     if (pos < 85) {
       //
       // LED FUNCTIONS
-      table_neo_colorshift(pos, 1);
-      threeks_neo_colorshift(pos, 1);
-      ledPwmAlternate(pos, 1);
+      neo_test(pos, 1);
+      ledPwmTest(pos, 1);
       BI_blink_two(pos);
     // Second of three position groups i 85-169 (pos-85 = 0-84)
     } else if (pos < 170) {
       pos = pos - 85;
       //
       // LED FUNCTIONS
-      table_neo_colorshift(pos, 2);
-      threeks_neo_colorshift(pos, 2);
-      ledPwmAlternate(pos, 2);
+      neo_test(pos, 2);
+      ledPwmTest(pos, 2);
       BI_blink_two(pos);
     // Third of three position groups i 170-254 (pos-170 = 0-84)
     } else {
       pos = pos -170;
       //
       // LED FUNCTIONS
-      table_neo_colorshift(pos, 3);
-      threeks_neo_colorshift(pos, 3);
+      neo_test(pos, 3);
       BI_blink_two(pos);
       // Split third group 3/4 (pos 0-42) for even number of transitions
       if (pos <43) {
         //
-        ledPwmAlternate(pos, 3);
+        ledPwmTest(pos, 3);
       // Split third group 4/4 (pos 43-84) for even number of transitions
       } else {
         //
-        ledPwmAlternate(pos, 4);
+        ledPwmTest(pos, 4);
       }
     }
 
@@ -457,7 +448,6 @@ void loop(){
   if (Touch02_IntCount == 1) { Touch02_LoopCount++; Touch02_IntCount = 0; } else { Touch02_LoopCount = 0; }
   if (Touch03_IntCount == 1) { Touch03_LoopCount++; Touch03_IntCount = 0; } else { Touch03_LoopCount = 0; }
   if (Touch04_IntCount == 1) { Touch04_LoopCount++; Touch04_IntCount = 0; } else { Touch04_LoopCount = 0; }
-  if (Touch05_IntCount == 1) { Touch05_LoopCount++; Touch05_IntCount = 0; } else { Touch05_LoopCount = 0; }
 
   // Turn off all LEDs at end of loop (Optional)
   // ledAllOff();
@@ -477,7 +467,7 @@ void loop(){
     Touch01_LoopCount = 0;
     //
     // Alternate code loop
-    reaction_time_game();
+    //reaction_time_game();
     //
     // END ALTERNATE MAIN LOOP
     Serial.println("****************************************");
@@ -508,7 +498,7 @@ void loop(){
     Touch02_LoopCount = 0;
     //
     // Alternate code loop
-    batt_chrg_noled();
+    //batt_chrg_noled();
     //
     // END ALTERNATE MAIN LOOP
     Serial.println("****************************************");
@@ -554,7 +544,7 @@ void loop(){
     // Show Wifi Status
     Serial.println(" WiFi Status: "); Serial.println(wl_status_to_string(WiFi.status()));
     // Launch CVD ADVENTURE GAME alternate main line code
-    cvdAdventureMain();
+    //cvdAdventureMain();
     //flush_card_game();
     //
     // END ALTERNATE MAIN LOOP
@@ -570,37 +560,6 @@ void loop(){
     ledAllOff();
     //
     Touch04_LoopCount = 0;
-    //
-    status_neo_mode = 0;
-    // Pause before exiting
-    delay(100);
-  }
-
-  // //////////////////////////////////////////////////
-  //
-  // Launch FLUSH CARD GAME Alternate Mainline Code When
-  // Touch05_LoopCount exceeds Touch05_Loop_Threshold
-  //
-  // //////////////////////////////////////////////////
-  if (Touch05_LoopCount > Touch05_Loop_Threshold) {
-    //
-    Serial.println("LONG TOUCH DETECTED on TCH05 - JUMP TO ALTERNATE CODE");
-    //
-    ledAllOff();
-    //
-    Touch05_LoopCount = 0;
-    //
-    // Alternate code loop
-    flush_card_game();
-    //
-    // END ALTERNATE MAIN LOOP
-    Serial.println("****************************************");
-    Serial.println("***** EXITING FLUSH CARD GAME MODE *****");
-    Serial.println("****************************************");
-    //
-    ledAllOff();
-    //
-    Touch05_LoopCount = 0;
     //
     status_neo_mode = 0;
     // Pause before exiting
@@ -662,32 +621,198 @@ void ledAllOff() {
   ledcWrite(LED_D4_pwm, 0);
   ledcWrite(LED_D5_pwm, 0);
   ledcWrite(LED_D6_pwm, 0);
+  ledcWrite(LED_D7_pwm, 0);
+  ledcWrite(LED_D8_pwm, 0);
   NEO01.setPixelColor(0, 0, 0, 0);
   NEO01.setPixelColor(1, 0, 0, 0);
   NEO01.setPixelColor(2, 0, 0, 0);
+  NEO01.setPixelColor(3, 0, 0, 0);
   NEO01.show();
   NEO02.setPixelColor(0, 0, 0, 0);
   NEO02.setPixelColor(1, 0, 0, 0);
   NEO02.setPixelColor(2, 0, 0, 0);
+  NEO02.setPixelColor(3, 0, 0, 0);
   NEO02.show();
 }
 //
 void ledPwmAllOn() {
     ledcWrite(LED_D1_pwm, 255);
-    ledcWrite(LED_D3_pwm, 255);
-    ledcWrite(LED_D5_pwm, 255);
     ledcWrite(LED_D2_pwm, 255);
+    ledcWrite(LED_D3_pwm, 255);
     ledcWrite(LED_D4_pwm, 255);
+    ledcWrite(LED_D5_pwm, 255);
     ledcWrite(LED_D6_pwm, 255);
+    ledcWrite(LED_D7_pwm, 255);
+    ledcWrite(LED_D8_pwm, 255);
 }
 //
 void ledPwmAllOff() {
     ledcWrite(LED_D1_pwm, 0);
-    ledcWrite(LED_D3_pwm, 0);
-    ledcWrite(LED_D5_pwm, 0);
     ledcWrite(LED_D2_pwm, 0);
+    ledcWrite(LED_D3_pwm, 0);
     ledcWrite(LED_D4_pwm, 0);
+    ledcWrite(LED_D5_pwm, 0);
     ledcWrite(LED_D6_pwm, 0);
+    ledcWrite(LED_D7_pwm, 0);
+    ledcWrite(LED_D8_pwm, 0);
+}
+//
+void ledPwmTest(uint8_t pos, uint8_t pass) {
+  // Pass 1&2 pos 0-84
+  //
+  if (pass < 3){
+    if (pos <= 11) {
+      ledcWrite(LED_D1_pwm, 255);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 0);
+    } else if (pos > 11 and pos <= 22) {
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 255);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 0);
+    } else if (pos > 22 and pos <= 33) {
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 255);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 0);
+    } else if (pos > 33 and pos <= 44) {
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 255);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 0);
+    } else if (pos > 44 and pos <= 55) {
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 255);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 0);
+    } else if (pos > 55 and pos <= 66) {
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 255);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 0);
+    } else if (pos > 66 and pos <= 77) {
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 255);
+      ledcWrite(LED_D8_pwm, 0);
+    } else { 
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 255);
+    }
+  }
+  // Pass 3&4 pos 0-42
+  //
+  if (pass < 3){
+    if (pos <= 5) {
+      ledcWrite(LED_D1_pwm, 255);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 0);
+    } else if (pos > 5 and pos <= 10) {
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 255);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 0);
+    } else if (pos > 10 and pos <= 15) {
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 255);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 0);
+    } else if (pos > 15 and pos <= 20) {
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 255);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 0);
+    } else if (pos > 20 and pos <= 25) {
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 255);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 0);
+    } else if (pos > 25 and pos <= 30) {
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 255);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 0);
+    } else if (pos > 35 and pos <= 40) {
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 255);
+      ledcWrite(LED_D8_pwm, 0);
+    } else { 
+      ledcWrite(LED_D1_pwm, 0);
+      ledcWrite(LED_D2_pwm, 0);
+      ledcWrite(LED_D3_pwm, 0);
+      ledcWrite(LED_D4_pwm, 0);
+      ledcWrite(LED_D5_pwm, 0);
+      ledcWrite(LED_D6_pwm, 0);
+      ledcWrite(LED_D7_pwm, 0);
+      ledcWrite(LED_D8_pwm, 255);
+    }
+  }
+
 }
 //
 void ledPwmAlternate(uint8_t pos, uint8_t pass) {
@@ -703,7 +828,7 @@ void ledPwmAlternate(uint8_t pos, uint8_t pass) {
   // D6 = Red - Diamonds K
   //
   // If T1 or T5 were pressed dont do anything here
-  if (Touch01_IntCount > 0 || Touch05_IntCount > 0) { pass = 0; }
+  if (Touch01_IntCount > 0 || Touch04_IntCount > 0) { pass = 0; }
   //
   // lightlevel var used to set the pwm value
   uint8_t lightlevel = 0;
@@ -782,9 +907,49 @@ void neo_show() {
   NEO02.show();
 }
 //
+void neo_test(uint8_t pos, uint8_t pass) {
+  //
+  // Pass 1 pos 0-84
+  if (pass == 1){
+    // Red
+    NEO01.setPixelColor(0, 255, 0, 0);
+    NEO01.setPixelColor(1, 255, 0, 0);
+    NEO01.setPixelColor(2, 255, 0, 0);
+    NEO01.setPixelColor(3, 255, 0, 0);
+    NEO02.setPixelColor(0, 255, 0, 0);
+    NEO02.setPixelColor(1, 255, 0, 0);
+    NEO02.setPixelColor(2, 255, 0, 0);
+    NEO02.setPixelColor(3, 255, 0, 0);
+  }
+  // Pass 2 pos 0-84
+  if (pass == 2){
+    // Green
+    NEO01.setPixelColor(0, 0, 255, 0);
+    NEO01.setPixelColor(1, 0, 255, 0);
+    NEO01.setPixelColor(2, 0, 255, 0);
+    NEO01.setPixelColor(3, 0, 255, 0);
+    NEO02.setPixelColor(0, 0, 255, 0);
+    NEO02.setPixelColor(1, 0, 255, 0);
+    NEO02.setPixelColor(2, 0, 255, 0);
+    NEO02.setPixelColor(3, 0, 255, 0);
+  }
+  // Pass 3 pos 0-84
+  if (pass == 3){
+    // Blue
+    NEO01.setPixelColor(0, 0, 0, 255);
+    NEO01.setPixelColor(1, 0, 0, 255);
+    NEO01.setPixelColor(2, 0, 0, 255);
+    NEO01.setPixelColor(3, 0, 0, 255);
+    NEO02.setPixelColor(0, 0, 0, 255);
+    NEO02.setPixelColor(1, 0, 0, 255);
+    NEO02.setPixelColor(2, 0, 0, 255);
+    NEO02.setPixelColor(3, 0, 0, 255);
+  }
+}
+//
 void table_neo_colorshift(uint8_t pos, uint8_t pass) {
   // If T1 or T5 were pressed dont do anything here
-  if (Touch01_IntCount > 0 || Touch05_IntCount > 0) { pass = 0; }
+  if (Touch01_IntCount > 0 || Touch04_IntCount > 0) { pass = 0; }
   //
   // Pass 1 pos 0-84
   if (pass == 1){
@@ -1130,13 +1295,13 @@ void flush_card_game() {
   bool flush_win = false;
   //
   // If Still being touched at start of code lets wait for no touch to start
-  Touch05_Value = touchRead(TCH05_PIN);
-  if (Touch05_Value < Touch05_Threshold) {
+  Touch04_Value = touchRead(TCH04_PIN);
+  if (Touch04_Value < Touch04_Threshold) {
     bool flush_wait = true;
     while (flush_wait) {
       delay(delaytime);
-      Touch05_Value = touchRead(TCH05_PIN);
-      if (Touch05_Value > Touch05_Threshold) { flush_wait = false; }
+      Touch04_Value = touchRead(TCH04_PIN);
+      if (Touch04_Value > Touch04_Threshold) { flush_wait = false; }
     }
   }
   //
@@ -1146,7 +1311,7 @@ void flush_card_game() {
     Serial.println("****************************************");
     Serial.println("******** FLUSH CARD GAME MODE **********");
     Serial.println("****************************************");
-    Serial.println("*** ACTIVATED BY LONG TOUCH ON TCH05 ***");
+    Serial.println("*** ACTIVATED BY LONG TOUCH ON TCH04 ***");
     Serial.println("***      THE COWBOYS TEXT BUTTON     ***");
     Serial.println("****************************************");
     Serial.println("** LONG PRESS AGAIN TO EXIT THIS MODE **");
@@ -1248,14 +1413,14 @@ void flush_card_game() {
       //
       // Touch
       //
-      Touch05_Value = touchRead(TCH05_PIN);
-      // Do Stuff If We Detect a Touch on TCH05_PIN
-      if (Touch05_Value < Touch05_Threshold) {
+      Touch04_Value = touchRead(TCH04_PIN);
+      // Do Stuff If We Detect a Touch on TCH04_PIN
+      if (Touch04_Value < Touch04_Threshold) {
         // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
         if (DebugSerial >= 2) {
-          Serial.print("TCH05_TOUCHED="); Serial.print(Touch05_Value);
-          Serial.print("/"); Serial.print(Touch05_Threshold);
-          Serial.print("-"); Serial.print(Touch05_LoopCount);
+          Serial.print("TCH04_TOUCHED="); Serial.print(Touch04_Value);
+          Serial.print("/"); Serial.print(Touch04_Threshold);
+          Serial.print("-"); Serial.print(Touch04_LoopCount);
           String comma=",";
           Serial.print(" C1 "); Serial.print(card_rand_1 + comma + card_red[card_rand_1] + comma + card_green[card_rand_1] + comma + card_blue[card_rand_1]);
           Serial.print(" C2 "); Serial.print(card_rand_2 + comma + card_red[card_rand_2] + comma + card_green[card_rand_2] + comma + card_blue[card_rand_2]);
@@ -1264,8 +1429,8 @@ void flush_card_game() {
           Serial.print(" C5 "); Serial.print(card_rand_5 + comma + card_red[card_rand_5] + comma + card_green[card_rand_5] + comma + card_blue[card_rand_5]);
           Serial.println();
         }
-        // STUFF - TCH05_PIN TOUCHED
-        Touch05_LoopCount++;
+        // STUFF - TCH04_PIN TOUCHED
+        Touch04_LoopCount++;
         //
         // Set Flush Card Colors based on randoms
         NEO01.setPixelColor(0, card_red[card_rand_1], card_green[card_rand_1], card_blue[card_rand_1]);
@@ -1290,16 +1455,16 @@ void flush_card_game() {
         delay(2000);
         break;
       //
-      // Do Stuff If We DONT Detect a Touch on TCH05_PIN
+      // Do Stuff If We DONT Detect a Touch on TCH04_PIN
       } else {
-        // STUFF - TCH05_PIN NOT TOUCHED
-        Touch05_LoopCount = 0;
+        // STUFF - TCH04_PIN NOT TOUCHED
+        Touch04_LoopCount = 0;
       }
       // Delay
       delay(delaytime);
     }
     // break out if touch loop threshold met
-    if (Touch05_LoopCount > Touch05_Loop_Threshold) {
+    if (Touch04_LoopCount > Touch04_Loop_Threshold) {
       flush_card_active = false;
     }
     // Winner!
@@ -1315,24 +1480,24 @@ void flush_card_game() {
         Serial.print(" card4="); Serial.print(card_rand_4);
         Serial.print(" card5="); Serial.println(card_rand_5);
       }
-      Touch05_Value = touchRead(TCH05_PIN);
-      if (Touch05_Value < Touch05_Threshold) {
+      Touch04_Value = touchRead(TCH04_PIN);
+      if (Touch04_Value < Touch04_Threshold) {
         // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
         if (DebugSerial >= 2) {
-          Serial.print("TCH05_TOUCHED="); Serial.print(Touch05_Value);
-          Serial.print("/"); Serial.print(Touch05_Threshold);
-          Serial.print("-"); Serial.println(Touch05_LoopCount);
+          Serial.print("TCH04_TOUCHED="); Serial.print(Touch04_Value);
+          Serial.print("/"); Serial.print(Touch04_Threshold);
+          Serial.print("-"); Serial.println(Touch04_LoopCount);
         }
-        // STUFF - TCH05_PIN TOUCHED
-        Touch05_LoopCount++;
+        // STUFF - TCH04_PIN TOUCHED
+        Touch04_LoopCount++;
       } else {
-        // STUFF - TCH05_PIN NOT TOUCHED
-        Touch05_LoopCount = 0;
+        // STUFF - TCH04_PIN NOT TOUCHED
+        Touch04_LoopCount = 0;
       }
       // Delay
       delay(delaytime);
       // break out if touch loop threshold met
-      if (Touch05_LoopCount > Touch05_Loop_Threshold) {
+      if (Touch04_LoopCount > Touch04_Loop_Threshold) {
         flush_win = false;
       }
     }
