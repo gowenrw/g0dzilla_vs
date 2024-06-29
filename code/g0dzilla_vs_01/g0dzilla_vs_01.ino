@@ -174,15 +174,6 @@ void setup(){
   ledcAttachPin(LED_D6, LED_D6_pwm);
   ledcAttachPin(LED_D7, LED_D7_pwm);
   ledcAttachPin(LED_D8, LED_D8_pwm);
-  // ledcAttachChannel(LED_D1, freq, resolution, LED_D1_pwm);
-  // ledcAttachChannel(LED_D2, freq, resolution, LED_D2_pwm);
-  // ledcAttachChannel(LED_D3, freq, resolution, LED_D3_pwm);
-  // ledcAttachChannel(LED_D4, freq, resolution, LED_D4_pwm);
-  // ledcAttachChannel(LED_D5, freq, resolution, LED_D5_pwm);
-  // ledcAttachChannel(LED_D6, freq, resolution, LED_D6_pwm);
-  // ledcAttachChannel(LED_D7, freq, resolution, LED_D7_pwm);
-  // ledcAttachChannel(LED_D8, freq, resolution, LED_D8_pwm);
-  // bool ledcAttachChannel(uint8_t pin, uint32_t freq, uint8_t resolution, uint8_t channel);
 
   //Normal LED output
   if (DebugSerial >= 2) {

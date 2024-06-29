@@ -25,4 +25,4 @@ output:
 sketch:
   always_export_binaries: false
 updater:
-  enable_notification: true
+  enable_notification: false

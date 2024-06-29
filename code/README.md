@@ -28,10 +28,12 @@ These are the Arduino IDE and CLI versions we have tested the code with:
   * [Windows MSI DL Link](https://downloads.arduino.cc/arduino-ide/arduino-ide_2.1.1_Windows_64bit.msi)
   * [Linux 64bit AppImage](https://downloads.arduino.cc/arduino-ide/arduino-ide_2.1.1_Linux_64bit.AppImage)
   * [Installation Instructions](https://docs.arduino.cc/software/ide-v2/tutorials/getting-started/ide-v2-downloading-and-installing)
-* Arduino CLI v 0.32.3
-  * [Windows MSI DL Link](https://github.com/arduino/arduino-cli/releases/download/0.32.3/arduino-cli_0.32.3_Windows_64bit.msi)
-  * [Linux 64bit Tarball Link](https://github.com/arduino/arduino-cli/releases/download/0.32.3/arduino-cli_0.32.3_Linux_64bit.tar.gz)
-  * [Installation Instructions](https://arduino.github.io/arduino-cli/0.32/installation/)
+* Arduino CLI v 0.35.3
+  * [Windows MSI DL Link](https://github.com/arduino/arduino-cli/releases/download/v0.35.3/arduino-cli_0.35.3_Windows_64bit.msi)
+  * [Linux 64bit Tarball Link](https://github.com/arduino/arduino-cli/releases/download/v0.35.3/arduino-cli_0.35.3_Linux_64bit.tar.gz)
+  * [Installation Instructions](https://arduino.github.io/arduino-cli/0.35/installation/)
+
+WARNING - DO NOT use Arduino CLI v 1.x if you want the scripts here to work, it is very buggy concerning local config files and relative paths
 
 # Quickstart
 
