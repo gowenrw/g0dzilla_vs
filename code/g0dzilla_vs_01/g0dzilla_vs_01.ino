@@ -47,18 +47,29 @@
 
 //
 // Analog Inut Pins
-#define JSAO01 34
-#define JSAO02 35
+#define JSAO01 34 // Left Front SAO
+#define JSAO02 35 // Right Front SAO
 
 // NeoPixel Properties
 //
 // Define NeoPixel Strips - (Num pixels, pin to send signals, pixel type, signal rate)
 Adafruit_NeoPixel NEO01 = Adafruit_NeoPixel(4, NEO01_DATA, NEO_RGB + NEO_KHZ800);
 Adafruit_NeoPixel NEO02 = Adafruit_NeoPixel(4, NEO02_DATA, NEO_RGB + NEO_KHZ800);
-// Status NeoPixel LED color mode default=0 green=1 blue=2 red=3
-int status_neo_mode = 0;
-// Main LED mode 0=default 1=battleone 2=battletwo
+
+// LED Variables
+//
+// Main LED mode 0=default 1=battleone 2=?
 int main_led_mode = 0;
+//
+// Battle Color bitvector 1=red 2=green 4=blue (3=R&G 5=R&B 6=G&B 7=R&G&B)
+int battle_color = 1;
+//
+// NeoPixel Big Color Value 32 bit = (W-8bit << 24) + (R-8bit << 16) + (G-8bit <<8) + (B-8bit)
+uint32_t neo_big_color = 0;
+uint8_t neo_col_whi = 0;
+uint8_t neo_col_red = 0;
+uint8_t neo_col_grn = 0;
+uint8_t neo_col_blu = 0;
 
 // PWM Properties
 //
@@ -95,15 +106,15 @@ const char* wl_status_to_string(wl_status_t status) {
 // Capacitive Touch Properties
 //
 // Touch Thresholds
-int Touch01_Threshold = 19;
-int Touch02_Threshold = 19;
-int Touch03_Threshold = 19;
-int Touch04_Threshold = 19;
+int Touch01_Threshold = 28;
+int Touch02_Threshold = 28;
+int Touch03_Threshold = 28;
+int Touch04_Threshold = 28;
 // Touch Initial Values
-int Touch01_Value = 21;
-int Touch02_Value = 21;
-int Touch03_Value = 21;
-int Touch04_Value = 21;
+int Touch01_Value = 30;
+int Touch02_Value = 30;
+int Touch03_Value = 30;
+int Touch04_Value = 30;
 //
 // Touch Counters
 //
@@ -208,6 +219,13 @@ void setup(){
   }
   ledAllOff();
 
+  // Set a Random Seed
+  int myrandseed = (analogRead(0) + analogRead(34) + (touchRead(TCH02_PIN) * 2) + (touchRead(TCH03_PIN)*3) + touchRead(TCH04_PIN));
+  randomSeed(myrandseed);
+  if (DebugSerial >= 2) {
+    Serial.print("Set Random Seed "); Serial.println(myrandseed);
+  }
+
   if (DebugSerial >= 1) {
     Serial.println(F("Setup Done!"));
   }
@@ -265,7 +283,7 @@ void loop(){
     if (Touch01_Value < Touch01_Threshold) {
       // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
       if (DebugSerial >= 2) {
-        Serial.print(" T01_TOUCH="); Serial.print(Touch01_Value);
+        Serial.print(" T1_TCH="); Serial.print(Touch01_Value);
         Serial.print("/"); Serial.print(Touch01_Threshold);
         Serial.print("-"); Serial.print(Touch01_IntCount);
         Serial.print("/"); Serial.print(Touch01_LoopCount);
@@ -283,7 +301,7 @@ void loop(){
     } else {
       // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
       if (DebugSerial >= 2) {
-        Serial.print(" T01="); Serial.print(Touch01_Value);
+        Serial.print(" T1="); Serial.print(Touch01_Value);
         Serial.print("/"); Serial.print(Touch01_Threshold);
         Serial.print("-"); Serial.print(Touch01_IntCount);
         Serial.print("/"); Serial.print(Touch01_LoopCount);
@@ -296,7 +314,7 @@ void loop(){
     if (Touch02_Value < Touch02_Threshold) {
       // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
       if (DebugSerial >= 2) {
-        Serial.print(" T02_TOUCH="); Serial.print(Touch02_Value);
+        Serial.print(" T2_TCH="); Serial.print(Touch02_Value);
         Serial.print("/"); Serial.print(Touch02_Threshold);
         Serial.print("-"); Serial.print(Touch02_IntCount);
         Serial.print("/"); Serial.print(Touch02_LoopCount);
@@ -306,6 +324,7 @@ void loop(){
         // Put stuff to happen once per iteration loop here
         main_led_mode = main_led_mode + 1;
         if (main_led_mode > 1) { main_led_mode = 0; }
+        setRandomColor();
       }
       // Put stuff to happen every iteration here
       Touch02_IntCount = 1;
@@ -316,7 +335,7 @@ void loop(){
     } else {
       // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
       if (DebugSerial >= 2) {
-        Serial.print(" T02="); Serial.print(Touch02_Value);
+        Serial.print(" T2="); Serial.print(Touch02_Value);
         Serial.print("/"); Serial.print(Touch02_Threshold);
         Serial.print("-"); Serial.print(Touch02_IntCount);
         Serial.print("/"); Serial.print(Touch02_LoopCount);
@@ -329,7 +348,7 @@ void loop(){
     if (Touch03_Value < Touch03_Threshold) {
       // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
       if (DebugSerial >= 2) {
-        Serial.print(" T03_TOUCH="); Serial.print(Touch03_Value);
+        Serial.print(" T3_TCH="); Serial.print(Touch03_Value);
         Serial.print("/"); Serial.print(Touch03_Threshold);
         Serial.print("-"); Serial.print(Touch03_IntCount);
         Serial.print("/"); Serial.print(Touch03_LoopCount);
@@ -347,7 +366,7 @@ void loop(){
     } else {
       // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
       if (DebugSerial >= 2) {
-        Serial.print(" T03="); Serial.print(Touch03_Value);
+        Serial.print(" T3="); Serial.print(Touch03_Value);
         Serial.print("/"); Serial.print(Touch03_Threshold);
         Serial.print("-"); Serial.print(Touch03_IntCount);
         Serial.print("/"); Serial.print(Touch03_LoopCount);
@@ -360,7 +379,7 @@ void loop(){
     if (Touch04_Value < Touch04_Threshold) {
       // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
       if (DebugSerial >= 2) {
-        Serial.print(" T04_TOUCH="); Serial.print(Touch04_Value);
+        Serial.print(" T4_TCH="); Serial.print(Touch04_Value);
         Serial.print("/"); Serial.print(Touch04_Threshold);
         Serial.print("-"); Serial.print(Touch04_IntCount);
         Serial.print("/"); Serial.print(Touch04_LoopCount);
@@ -378,7 +397,7 @@ void loop(){
     } else {
       // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
       if (DebugSerial >= 2) {
-        Serial.print(" T04="); Serial.print(Touch04_Value);
+        Serial.print(" T4="); Serial.print(Touch04_Value);
         Serial.print("/"); Serial.print(Touch04_Threshold);
         Serial.print("-"); Serial.print(Touch04_IntCount);
         Serial.print("/"); Serial.print(Touch04_LoopCount);
@@ -475,10 +494,16 @@ void loop(){
       }
     }
 
-    // DEBUG - Print status neopixel mode
+    // DEBUG - Print NEO color vars
     if (DebugSerial >= 2) {
-      // Status NeoPixel LED color mode default=0 green=1 blue=2 red=3
-      Serial.print(" Smode="); Serial.print(status_neo_mode);
+      Serial.print(" C="); Serial.print(neo_col_red);
+      Serial.print("/"); Serial.print(neo_col_grn);
+      Serial.print("/"); Serial.print(neo_col_blu);
+    }
+
+    // DEBUG - Print LED mode
+    if (DebugSerial >= 2) {
+      Serial.print(" Mode="); Serial.print(main_led_mode);
     }
 
     // DEBUG - Print Carriage Return for iteration level debug output
@@ -533,7 +558,7 @@ void loop(){
     //
     Touch01_LoopCount = 0;
     //
-    status_neo_mode = 0;
+    main_led_mode = 0;
     // Pause before exiting
     delay(100);
   }
@@ -564,7 +589,7 @@ void loop(){
     //
     Touch02_LoopCount = 0;
     //
-    status_neo_mode = 0;
+    main_led_mode = 0;
     // Pause before exiting
     delay(100);
   }
@@ -583,10 +608,6 @@ void loop(){
     //
     Touch04_LoopCount = 0;
     //
-    // Set status to 3/red
-    status_neo_mode = 3;
-    status_indicator(status_neo_mode);
-    neo_show();
     //
     // Alternate code loop
     //
@@ -616,7 +637,7 @@ void loop(){
     //
     Touch04_LoopCount = 0;
     //
-    status_neo_mode = 0;
+    main_led_mode = 0;
     // Pause before exiting
     delay(100);
   }
@@ -710,6 +731,39 @@ void ledPwmAllOff() {
     ledcWrite(LED_D6_pwm, 0);
     ledcWrite(LED_D7_pwm, 0);
     ledcWrite(LED_D8_pwm, 0);
+}
+//
+void setRandomColor() {
+  // Basic Random numbers for on/off
+  int colorrand41 = random(0-4); int colorrand42 = random(0-4); int colorrand43 = random(0-4);
+  int colorrand4t = colorrand41 + colorrand42 + colorrand43;
+  // Reset colors
+  neo_col_whi = 0;
+  neo_col_red = 0;
+  neo_col_grn = 0;
+  neo_col_blu = 0;
+  // Set Red
+  if (colorrand4t > 3) { neo_col_red = random(50, 255); }
+  // Set Blue
+  if (neo_col_red == 0 and colorrand4t > 1) { neo_col_blu = random(50, 255); } else if (colorrand4t > 3) { neo_col_blu = random(50, 255); }
+  // Set Green
+  if (neo_col_blu == 0 and colorrand4t > 3) { neo_col_grn = random(50, 255); } else if (colorrand4t > 5) { neo_col_grn = random(50, 255); }
+  // Make sure at least one color is not zero
+  if ((neo_col_red + neo_col_grn + neo_col_blu) == 0) { neo_col_red = 255; }
+  // Set Color
+  neo_big_color = (neo_col_whi << 24) + (neo_col_red << 16) + (neo_col_grn << 8) + neo_col_blu;
+}
+//
+void setStaticColor(uint8_t sred, uint8_t sgrn, uint8_t sblu) {
+  // Define colors
+  neo_col_whi = 0;
+  neo_col_red = sred;
+  neo_col_grn = sgrn;
+  neo_col_blu = sblu;
+  // Make sure at least one color is not zero
+  if ((neo_col_red + neo_col_grn + neo_col_blu) == 0) { neo_col_red = 255; }
+  // Set Color
+  neo_big_color = (neo_col_whi << 24) + (neo_col_red << 16) + (neo_col_grn << 8) + neo_col_blu;
 }
 //
 void ledPwmTest(uint8_t pos, uint8_t pass) {
@@ -829,92 +883,6 @@ void ledPwmDefault(uint8_t pos, uint8_t pass) {
   ledcWrite(LED_D4_pwm, 0);
 }
 //
-void ledPwmAlternate(uint8_t pos, uint8_t pass) {
-  //
-  // Alternate pulses between blue&red and the two green
-  // blue full on = red full off and green1 on = green2 off
-  //
-  // D1 = Green - Left Dino no hat
-  // D2 = Green - Right Dino hat
-  // D3 = Blue - Clubs 10
-  // D4 = Red - Hearts J
-  // D5 = Blue - Spades Q
-  // D6 = Red - Diamonds K
-  //
-  // If T1 or T5 were pressed dont do anything here
-  if (Touch01_IntCount > 0 || Touch04_IntCount > 0) { pass = 0; }
-  //
-  // lightlevel var used to set the pwm value
-  uint8_t lightlevel = 0;
-  //
-  // Pass 1 pos 0-84
-  // D2/3/5 ON->OFF
-  // D1/4/6 OFF->ON
-  if (pass == 1){
-    if (pos <= 16) { lightlevel = 0; }
-    else if (pos > 16 and pos <= 32) { lightlevel = 64; }
-    else if (pos > 32 and pos <= 48) { lightlevel = 128; }
-    else if (pos > 48 and pos <= 64) { lightlevel = 192; }
-    else { lightlevel = 255; }
-    ledcWrite(LED_D2_pwm, int(255 - lightlevel));
-    ledcWrite(LED_D3_pwm, int(255 - lightlevel));
-    ledcWrite(LED_D5_pwm, int(255 - lightlevel));
-    ledcWrite(LED_D1_pwm, int(lightlevel));
-    ledcWrite(LED_D4_pwm, int(lightlevel));
-    ledcWrite(LED_D6_pwm, int(lightlevel));
-  }
-  // Pass 2 pos 0-84
-  // D2/3/5 OFF->ON
-  // D1/4/6 ON->OFF
-  if (pass == 2){
-    if (pos <= 16) { lightlevel = 0; }
-    else if (pos > 16 and pos <= 32) { lightlevel = 64; }
-    else if (pos > 32 and pos <= 48) { lightlevel = 128; }
-    else if (pos > 48 and pos <= 64) { lightlevel = 192; }
-    else { lightlevel = 255; }
-    ledcWrite(LED_D2_pwm, int(lightlevel));
-    ledcWrite(LED_D3_pwm, int(lightlevel));
-    ledcWrite(LED_D5_pwm, int(lightlevel));
-    ledcWrite(LED_D1_pwm, int(255 - lightlevel));
-    ledcWrite(LED_D4_pwm, int(255 - lightlevel));
-    ledcWrite(LED_D6_pwm, int(255 - lightlevel));
-  }
-  // Pass 3 pos 0-42
-  // D3/5 ON->OFF
-  // D4/6 OFF->ON
-  // D1/2 ON
-  if (pass == 3){
-    if (pos <= 8) { lightlevel = 0; }
-    else if (pos > 8 and pos <= 16) { lightlevel = 64; }
-    else if (pos > 16 and pos <= 24) { lightlevel = 128; }
-    else if (pos > 24 and pos <= 32) { lightlevel = 192; }
-    else { lightlevel = 255; }
-    ledcWrite(LED_D3_pwm, int(255 - lightlevel));
-    ledcWrite(LED_D5_pwm, int(255 - lightlevel));
-    ledcWrite(LED_D4_pwm, int(lightlevel));
-    ledcWrite(LED_D6_pwm, int(lightlevel));
-    ledcWrite(LED_D1_pwm, 255);
-    ledcWrite(LED_D2_pwm, 255);
-  }
-  // Pass 4 pos 43-84
-  // D3/5 OFF->ON
-  // D4/6 ON->OFF
-  // D1/2 ON
-  if (pass == 4){
-    if (pos <= 51) { lightlevel = 0; }
-    else if (pos > 51 and pos <= 59) { lightlevel = 64; }
-    else if (pos > 59 and pos <= 67) { lightlevel = 128; }
-    else if (pos > 67 and pos <= 75) { lightlevel = 192; }
-    else { lightlevel = 255; }
-    ledcWrite(LED_D3_pwm, int(lightlevel));
-    ledcWrite(LED_D5_pwm, int(lightlevel));
-    ledcWrite(LED_D4_pwm, int(255 - lightlevel));
-    ledcWrite(LED_D6_pwm, int(255 - lightlevel));
-    ledcWrite(LED_D1_pwm, 255);
-    ledcWrite(LED_D2_pwm, 255);
-  }
-}
-//
 void neo_show() {
   // Display neopixel colors set by other functions
   NEO01.show();
@@ -960,13 +928,9 @@ void neo_test(uint8_t pos, uint8_t pass) {
     NEO02.setPixelColor(3, 0, 0, 255);
   }
 }
+
 //
 void g0dz_blast(uint8_t pos, uint8_t pass) {
-  // int blastseed = (analogRead(0) + touchRead(TCH03_PIN) + touchRead(TCH02_PIN));
-  // randomSeed(blastseed);
-  // int blastone = random(0, 64); int blastred = random(0, 255);
-  // int blasttwo = random(0, 64); int blastgreen = random(0, 255);
-  // int blastthr = random(0, 64); int blastblue = random(0, 255);
   //
   // Pass 1-3 pos 0-84
   if (pass < 4){
@@ -988,7 +952,7 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
     ledcWrite(LED_D7_pwm, 0);
     ledcWrite(LED_D8_pwm, 0);
     if (pos <= 5) {
-      NEO02.setPixelColor(0, 255, 0, 0);
+      NEO02.setPixelColor(0, neo_big_color);
       NEO02.setPixelColor(1, 0, 0, 0);
       NEO02.setPixelColor(2, 0, 0, 0);
       NEO02.setPixelColor(3, 0, 0, 0);
@@ -996,7 +960,7 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
       ledcWrite(LED_D2_pwm, 255);
     } else if (pos > 5 and pos <= 10) {
       NEO02.setPixelColor(0, 0, 0, 0);
-      NEO02.setPixelColor(1, 255, 0, 0);
+      NEO02.setPixelColor(1, neo_big_color);
       NEO02.setPixelColor(2, 0, 0, 0);
       NEO02.setPixelColor(3, 0, 0, 0);
       NEO01.setPixelColor(3, 0, 0, 0);
@@ -1004,7 +968,7 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
     } else if (pos > 10 and pos <= 15) {
       NEO02.setPixelColor(0, 0, 0, 0);
       NEO02.setPixelColor(1, 0, 0, 0);
-      NEO02.setPixelColor(2, 255, 0, 0);
+      NEO02.setPixelColor(2, neo_big_color);
       NEO02.setPixelColor(3, 0, 0, 0);
       NEO01.setPixelColor(3, 0, 0, 0);
       ledcWrite(LED_D4_pwm, 255);
@@ -1012,7 +976,7 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
       NEO02.setPixelColor(0, 0, 0, 0);
       NEO02.setPixelColor(1, 0, 0, 0);
       NEO02.setPixelColor(2, 0, 0, 0);
-      NEO02.setPixelColor(3, 255, 0, 0);
+      NEO02.setPixelColor(3, neo_big_color);
       NEO01.setPixelColor(3, 0, 0, 0);
       ledcWrite(LED_D2_pwm, 255);
     } else if (pos > 20 and pos <= 25) {
@@ -1020,10 +984,10 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
       NEO02.setPixelColor(1, 0, 0, 0);
       NEO02.setPixelColor(2, 0, 0, 0);
       NEO02.setPixelColor(3, 0, 0, 0);
-      NEO01.setPixelColor(3, 255, 0, 0);
+      NEO01.setPixelColor(3, neo_big_color);
       ledcWrite(LED_D3_pwm, 255);
     } else if (pos > 25 and pos <= 30) {
-      NEO02.setPixelColor(0, 255, 0, 0);
+      NEO02.setPixelColor(0, neo_big_color);
       NEO02.setPixelColor(1, 0, 0, 0);
       NEO02.setPixelColor(2, 0, 0, 0);
       NEO02.setPixelColor(3, 0, 0, 0);
@@ -1031,7 +995,7 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
       ledcWrite(LED_D4_pwm, 255);
     } else if (pos > 30 and pos <= 35) {
       NEO02.setPixelColor(0, 0, 0, 0);
-      NEO02.setPixelColor(1, 255, 0, 0);
+      NEO02.setPixelColor(1, neo_big_color);
       NEO02.setPixelColor(2, 0, 0, 0);
       NEO02.setPixelColor(3, 0, 0, 0);
       NEO01.setPixelColor(3, 0, 0, 0);
@@ -1039,7 +1003,7 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
     } else if (pos > 35 and pos <= 40) {
       NEO02.setPixelColor(0, 0, 0, 0);
       NEO02.setPixelColor(1, 0, 0, 0);
-      NEO02.setPixelColor(2, 255, 0, 0);
+      NEO02.setPixelColor(2, neo_big_color);
       NEO02.setPixelColor(3, 0, 0, 0);
       NEO01.setPixelColor(3, 0, 0, 0);
       ledcWrite(LED_D3_pwm, 255);
@@ -1047,7 +1011,7 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
       NEO02.setPixelColor(0, 0, 0, 0);
       NEO02.setPixelColor(1, 0, 0, 0);
       NEO02.setPixelColor(2, 0, 0, 0);
-      NEO02.setPixelColor(3, 255, 0, 0);
+      NEO02.setPixelColor(3, neo_big_color);
       NEO01.setPixelColor(3, 0, 0, 0);
       ledcWrite(LED_D4_pwm, 255);
     } else if (pos > 45 and pos <= 50) {
@@ -1055,10 +1019,10 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
       NEO02.setPixelColor(1, 0, 0, 0);
       NEO02.setPixelColor(2, 0, 0, 0);
       NEO02.setPixelColor(3, 0, 0, 0);
-      NEO01.setPixelColor(3, 255, 0, 0);
+      NEO01.setPixelColor(3, neo_big_color);
       ledcWrite(LED_D2_pwm, 255);
     } else if (pos > 50 and pos <= 55) {
-      NEO02.setPixelColor(0, 255, 0, 0);
+      NEO02.setPixelColor(0, neo_big_color);
       NEO02.setPixelColor(1, 0, 0, 0);
       NEO02.setPixelColor(2, 0, 0, 0);
       NEO02.setPixelColor(3, 0, 0, 0);
@@ -1066,7 +1030,7 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
       ledcWrite(LED_D3_pwm, 255);
     } else if (pos > 55 and pos <= 60) {
       NEO02.setPixelColor(0, 0, 0, 0);
-      NEO02.setPixelColor(1, 255, 0, 0);
+      NEO02.setPixelColor(1, neo_big_color);
       NEO02.setPixelColor(2, 0, 0, 0);
       NEO02.setPixelColor(3, 0, 0, 0);
       NEO01.setPixelColor(3, 0, 0, 0);
@@ -1074,7 +1038,7 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
     } else if (pos > 60 and pos <= 65) {
       NEO02.setPixelColor(0, 0, 0, 0);
       NEO02.setPixelColor(1, 0, 0, 0);
-      NEO02.setPixelColor(2, 255, 0, 0);
+      NEO02.setPixelColor(2, neo_big_color);
       NEO02.setPixelColor(3, 0, 0, 0);
       NEO01.setPixelColor(3, 0, 0, 0);
       ledcWrite(LED_D2_pwm, 255);
@@ -1082,7 +1046,7 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
       NEO02.setPixelColor(0, 0, 0, 0);
       NEO02.setPixelColor(1, 0, 0, 0);
       NEO02.setPixelColor(2, 0, 0, 0);
-      NEO02.setPixelColor(3, 255, 0, 0);
+      NEO02.setPixelColor(3, neo_big_color);
       NEO01.setPixelColor(3, 0, 0, 0);
       ledcWrite(LED_D3_pwm, 255);
     } else if (pos > 70 and pos <= 75) {
@@ -1090,12 +1054,12 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
       NEO02.setPixelColor(1, 0, 0, 0);
       NEO02.setPixelColor(2, 0, 0, 0);
       NEO02.setPixelColor(3, 0, 0, 0);
-      NEO01.setPixelColor(3, 255, 0, 0);
+      NEO01.setPixelColor(3, neo_big_color);
       ledcWrite(LED_D4_pwm, 255);
     } else if (pos > 75 and pos <= 78) {
-      NEO01.setPixelColor(0, 255, 0, 0);
-      NEO01.setPixelColor(1, 255, 0, 0);
-      NEO01.setPixelColor(2, 255, 0, 0);
+      NEO01.setPixelColor(0, neo_big_color);
+      NEO01.setPixelColor(1, neo_big_color);
+      NEO01.setPixelColor(2, neo_big_color);
       ledcWrite(LED_D1_pwm, 255);
       ledcWrite(LED_D5_pwm, 255);
       ledcWrite(LED_D6_pwm, 255);
@@ -1107,70 +1071,13 @@ void g0dz_blast(uint8_t pos, uint8_t pass) {
       ledcWrite(LED_D5_pwm, 100);
       ledcWrite(LED_D6_pwm, 100);
     } else if (pos > 81) {
-      NEO01.setPixelColor(0, 255, 0, 0);
-      NEO01.setPixelColor(1, 255, 0, 0);
-      NEO01.setPixelColor(2, 255, 0, 0);
+      NEO01.setPixelColor(0, neo_big_color);
+      NEO01.setPixelColor(1, neo_big_color);
+      NEO01.setPixelColor(2, neo_big_color);
       ledcWrite(LED_D1_pwm, 255);
       ledcWrite(LED_D5_pwm, 255);
       ledcWrite(LED_D6_pwm, 255);
     }
-  }
-}
-//
-void table_neo_colorshift(uint8_t pos, uint8_t pass) {
-  // If T1 or T5 were pressed dont do anything here
-  if (Touch01_IntCount > 0 || Touch04_IntCount > 0) { pass = 0; }
-  //
-  // Pass 1 pos 0-84
-  if (pass == 1){
-    // Red 255-0 Green 0-255
-    NEO01.setPixelColor(0, int(255 - (pos*3)), int(pos*3), 0);
-    NEO02.setPixelColor(1, int(255 - (pos*3)), int(pos*3), 0);
-    // Green 255-0 Blue 0-255
-    NEO01.setPixelColor(1, 0, int(255 - (pos*3)), int(pos*3));
-    NEO02.setPixelColor(0, 0, int(255 - (pos*3)), int(pos*3));
-    // Blue 255-0 Red 0-255
-    NEO01.setPixelColor(2, int(pos*3), 0, int(255 - pos*3));
-  }
-  // Pass 2 pos 0-84
-  if (pass == 2){
-    // Red 255-0 Green 0-255
-    NEO01.setPixelColor(2, int(255 - (pos*3)), int(pos*3), 0);
-    // Green 255-0 Blue 0-255
-    NEO01.setPixelColor(0, 0, int(255 - (pos*3)), int(pos*3));
-    NEO02.setPixelColor(1, 0, int(255 - (pos*3)), int(pos*3));
-    // Blue 255-0 Red 0-255
-    NEO01.setPixelColor(1, int(pos*3), 0, int(255 - pos*3));
-    NEO02.setPixelColor(0, int(pos*3), 0, int(255 - pos*3));
-  }
-  // Pass 3 pos 0-84
-  if (pass == 3){
-    // Red 255-0 Green 0-255
-    NEO01.setPixelColor(1, int(255 - (pos*3)), int(pos*3), 0);
-    NEO02.setPixelColor(0, int(255 - (pos*3)), int(pos*3), 0);
-    // Green 255-0 Blue 0-255
-    NEO01.setPixelColor(2, 0, int(255 - (pos*3)), int(pos*3));
-    // Blue 255-0 Red 0-255
-    NEO01.setPixelColor(0, int(pos*3), 0, int(255 - pos*3));
-    NEO02.setPixelColor(1, int(pos*3), 0, int(255 - pos*3));
-  }
-}
-//
-void threeks_neo_colorshift(uint8_t pos, uint8_t pass) {
-  // Pass 1 pos 0-84
-  if (pass == 1){
-    // Blue 255-0 Red 0-255
-    NEO02.setPixelColor(2, int(pos*3), 0, int(255 - pos*3));
-  }
-  // Pass 2 pos 0-84
-  if (pass == 2){
-    // Red 255-0 Green 0-255
-    NEO02.setPixelColor(2, int(255 - (pos*3)), int(pos*3), 0);
-  }
-  // Pass 3 pos 0-84
-  if (pass == 3){
-    // Green 255-0 Blue 0-255
-    NEO02.setPixelColor(2, 0, int(255 - (pos*3)), int(pos*3));
   }
 }
 //
@@ -1234,98 +1141,6 @@ void g0dz_neo_colorshift(uint8_t pos, uint8_t pass) {
   }
 }
 //
-void threeks_neo_red() {
-  NEO02.setPixelColor(2, 255, 0, 0);
-}
-//
-void threeks_neo_green() {
-  NEO02.setPixelColor(2, 0, 255, 0);
-}
-//
-void threeks_neo_blue() {
-  NEO02.setPixelColor(2, 0, 0, 255);
-}
-//
-void status_indicator(uint8_t status) {
-  // Status NeoPixel LED color mode default=0 green=1 blue=2 red=3
-  if (status == 1){
-    NEO02.setPixelColor(2, 0, 255, 0);
-  }
-  if (status == 2){
-    NEO02.setPixelColor(2, 0, 0, 255);
-  }
-  if (status == 3){
-    NEO02.setPixelColor(2, 255, 0, 0);
-  }
-}
-//
-void touchedCowboys() {
-    // Light Cowboys and 3KS logo but nothing else
-    ledcWrite(LED_D1_pwm, 0);
-    ledcWrite(LED_D2_pwm, 0);
-    ledcWrite(LED_D3_pwm, 0);
-    ledcWrite(LED_D4_pwm, 0);
-    ledcWrite(LED_D5_pwm, 0);
-    ledcWrite(LED_D6_pwm, 0);
-    NEO01.setPixelColor(0, 0, 0, 255);
-    NEO01.setPixelColor(1, 0, 0, 0);
-    NEO01.setPixelColor(2, 0, 0, 255);
-    NEO02.setPixelColor(0, 0, 0, 0);
-    NEO02.setPixelColor(1, 0, 0, 0);
-    NEO02.setPixelColor(2, 255, 255, 255);
-}
-//
-void touchedDinosaurs() {
-    // Light Dinos and 3KS logo but nothing else
-    ledcWrite(LED_D1_pwm, 255);
-    ledcWrite(LED_D2_pwm, 255);
-    ledcWrite(LED_D3_pwm, 0);
-    ledcWrite(LED_D4_pwm, 0);
-    ledcWrite(LED_D5_pwm, 0);
-    ledcWrite(LED_D6_pwm, 0);
-    NEO01.setPixelColor(0, 0, 0, 0);
-    NEO01.setPixelColor(1, 0, 0, 0);
-    NEO01.setPixelColor(2, 0, 0, 0);
-    NEO02.setPixelColor(0, 0, 0, 0);
-    NEO02.setPixelColor(1, 0, 0, 0);
-    NEO02.setPixelColor(2, 255, 255, 255);
-}
-//
-void touched3000() {
-    // Quick pulse of neopixels
-    int socseed = (analogRead(0) + touchRead(TCH03_PIN) + touchRead(TCH02_PIN));
-    randomSeed(socseed);
-    int socred = random(0, 16); socred = random(32, 128); socred = random(0, 255);
-    int socgrn = random(0, 16); socgrn = random(32, 128); socgrn = random(0, 255);
-    int socblu = random(0, 16); socblu = random(32, 128); socblu = random(0, 255);
-    int socdelay = 75;
-    //
-    NEO01.setPixelColor(0, socred, socgrn, socblu); NEO01.setPixelColor(1, 0, 0, 0); NEO01.setPixelColor(2, 0, 0, 0);
-    NEO02.setPixelColor(0, 0, 0, 0); NEO02.setPixelColor(1, 0, 0, 0); NEO02.setPixelColor(2, 0, 0, 0);
-    neo_show();
-    delay(socdelay);
-    NEO01.setPixelColor(0, 0, 0, 0); NEO01.setPixelColor(1, socred, socgrn, socblu); NEO01.setPixelColor(2, 0, 0, 0);
-    NEO02.setPixelColor(0, 0, 0, 0); NEO02.setPixelColor(1, 0, 0, 0); NEO02.setPixelColor(2, 0, 0, 0);
-    neo_show();
-    delay(socdelay);
-    NEO01.setPixelColor(0, 0, 0, 0); NEO01.setPixelColor(1, 0, 0, 0); NEO01.setPixelColor(2, socred, socgrn, socblu);
-    NEO02.setPixelColor(0, 0, 0, 0); NEO02.setPixelColor(1, 0, 0, 0); NEO02.setPixelColor(2, 0, 0, 0);
-    neo_show();
-    delay(socdelay);
-    NEO01.setPixelColor(0, 0, 0, 0); NEO01.setPixelColor(1, 0, 0, 0); NEO01.setPixelColor(2, 0, 0, 0);
-    NEO02.setPixelColor(0, socred, socgrn, socblu); NEO02.setPixelColor(1, 0, 0, 0); NEO02.setPixelColor(2, 0, 0, 0);
-    neo_show();
-    delay(socdelay);
-    NEO01.setPixelColor(0, 0, 0, 0); NEO01.setPixelColor(1, 0, 0, 0); NEO01.setPixelColor(2, 0, 0, 0);
-    NEO02.setPixelColor(0, 0, 0, 0); NEO02.setPixelColor(1, socred, socgrn, socblu); NEO02.setPixelColor(2, 0, 0, 0);
-    neo_show();
-    delay(socdelay);
-    NEO01.setPixelColor(0, 0, 0, 0); NEO01.setPixelColor(1, 0, 0, 0); NEO01.setPixelColor(2, 0, 0, 0);
-    NEO02.setPixelColor(0, 0, 0, 0); NEO02.setPixelColor(1, 0, 0, 0); NEO02.setPixelColor(2, socred, socgrn, socblu);
-    neo_show();
-    delay(socdelay);
-}
-//
 void BI_on() {
   digitalWrite(LED_BI, LOW); // LOW = ON?
 }
@@ -1351,91 +1166,6 @@ void BI_blink_two(uint8_t pos) {
     digitalWrite(LED_BI, LOW); // LOW = ON?
   } else {
     digitalWrite(LED_BI, HIGH); // HIGH = OFF?
-  }
-}
-//
-void reaction_time_game() {
-  // Set status to 1/green
-  status_neo_mode = 1;
-  status_indicator(status_neo_mode);
-  neo_show();
-  //
-  // Set an exit var
-  bool reaction_time_active = true;
-  //
-  int recseed = (analogRead(0) + touchRead(TCH03_PIN) + touchRead(TCH02_PIN));
-  randomSeed(recseed);
-  int recrand = random(0, 16); recrand = random(32, 128); recrand = random(0, 255);
-  //
-  // Set delay values
-  int delaybase = 10;
-  int delaytime = delaybase + 0;
-  //
-  while (reaction_time_active) {
-    // Print Serial Message About Mode
-    Serial.println("****************************************");
-    Serial.println("****************************************");
-    Serial.println("******* REACTION TIME GAME MODE ********");
-    Serial.println("****************************************");
-    Serial.println("*** ACTIVATED BY LONG TOUCH ON TCH01 ***");
-    Serial.println("***     THE DINOSAURS TEXT BUTTON    ***");
-    Serial.println("****************************************");
-    Serial.println("** LONG PRESS AGAIN TO EXIT THIS MODE **");
-    Serial.println("****************************************");
-    Serial.println("****************************************");
-    // All OFF
-    ledcWrite(LED_D3_pwm, 0);
-    ledcWrite(LED_D4_pwm, 0);
-    ledcWrite(LED_D5_pwm, 0);
-    ledcWrite(LED_D6_pwm, 0);
-    // Pause
-    delay(10);
-    // Random Delay
-    recrand = random(5, 35);
-    // Loop 0-8 - none/1/2/3/4/3/2/1/none
-    for(int r=0; r<9; r++){
-      if (r == 1) { ledcWrite(LED_D3_pwm, 255); delaytime = delaybase + recrand + recrand + recrand + recrand;}
-      if (r == 2) { ledcWrite(LED_D4_pwm, 255); delaytime = delaybase + recrand + recrand + recrand;}
-      if (r == 3) { ledcWrite(LED_D5_pwm, 255); delaytime = delaybase + recrand + recrand;}
-      if (r == 4) { ledcWrite(LED_D6_pwm, 255); delaytime = delaybase + recrand;}
-      if (r == 5) { ledcWrite(LED_D6_pwm, 0); delaytime = delaybase + recrand;}
-      if (r == 6) { ledcWrite(LED_D5_pwm, 0); delaytime = delaybase + recrand + recrand;}
-      if (r == 7) { ledcWrite(LED_D4_pwm, 0); delaytime = delaybase + recrand + recrand + recrand;}
-      if (r == 8) { ledcWrite(LED_D3_pwm, 0); delaytime = delaybase + recrand + recrand + recrand + recrand;}
-      // DEBUG - Print current iteration and delaytime to serial console for troubleshooting
-      if (DebugSerial >= 2) {
-        Serial.print("R="); Serial.print(r);
-        Serial.print(" Delaytime="); Serial.println(delaytime);
-      }
-      //
-      // Touch
-      //
-      Touch01_Value = touchRead(TCH01_PIN);
-      // Do Stuff If We Detect a Touch on TCH01_PIN
-      if (Touch01_Value < Touch01_Threshold) {
-        // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
-        if (DebugSerial >= 2) {
-          Serial.print("TCH01_TOUCHED="); Serial.print(Touch01_Value);
-          Serial.print("/"); Serial.print(Touch01_Threshold);
-          Serial.print("-"); Serial.println(Touch01_LoopCount);
-        }
-        // STUFF - TCH01_PIN TOUCHED
-        Touch01_LoopCount++;
-        delay(1000);
-        break;
-      //
-      // Do Stuff If We DONT Detect a Touch on TCH01_PIN
-      } else {
-        // STUFF - TCH01_PIN NOT TOUCHED
-        Touch01_LoopCount = 0;
-      }
-      // Delay
-      delay(delaytime);
-    }
-    // break out if touch loop threshold met
-    if (Touch01_LoopCount > Touch01_Loop_Threshold) {
-      reaction_time_active = false;
-    }
   }
 }
 //
@@ -1470,7 +1200,7 @@ void batt_chrg_noled() {
     if (Touch02_Value < Touch02_Threshold) {
       // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
       if (DebugSerial >= 2) {
-        Serial.print("TCH02_TOUCHED="); Serial.print(Touch02_Value);
+        Serial.print("T2_TCH="); Serial.print(Touch02_Value);
         Serial.print("/"); Serial.print(Touch02_Threshold);
         Serial.print("-"); Serial.println(Touch02_LoopCount);
       }
@@ -1484,252 +1214,6 @@ void batt_chrg_noled() {
     }
     if (Touch02_LoopCount > Touch02_Loop_Threshold) {
       batt_chrg_noled_active = false;
-    }
-  }
-}
-//
-void flush_card_game() {
-  // Set status to 2/blue
-  status_neo_mode = 2;
-  status_indicator(status_neo_mode);
-  neo_show();
-  //
-  // Set an exit var
-  bool flush_card_active = true;
-  //
-  // Set delay value
-  int delaytime = 250;
-  //
-  // Set Card Random variables
-  int card_rand_1 = 0;
-  int card_rand_2 = 0;
-  int card_rand_3 = 0;
-  int card_rand_4 = 0;
-  int card_rand_5 = 0;
-  //
-  // Set Card Color Values
-  int card_red[] = { 255, 0, 0, 255, 255, 0, 0, 255 };
-  int card_green[] = { 0, 255, 0, 0, 0, 255, 0, 0 };
-  int card_blue[] = { 0, 0, 255, 255, 0, 0, 255, 255 };
-  //
-  // Analog Read Settings for Random Source
-  //adc1_config_width(ADC_WIDTH_BIT_12);
-  adc1_config_channel_atten(ADC1_CHANNEL_0,ADC_ATTEN_DB_0);
-  adc1_config_channel_atten(ADC1_CHANNEL_3,ADC_ATTEN_DB_0);
-  adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_0);
-  adc1_config_channel_atten(ADC1_CHANNEL_7,ADC_ATTEN_DB_0);
-  int cardseed = (adc1_get_raw(ADC1_CHANNEL_0) + analogRead(0) + touchRead(TCH03_PIN) + touchRead(TCH04_PIN) + adc1_get_raw(ADC1_CHANNEL_7));
-  randomSeed(cardseed);
-  //
-  // Set Flush Detector
-  bool flush_win = false;
-  //
-  // If Still being touched at start of code lets wait for no touch to start
-  Touch04_Value = touchRead(TCH04_PIN);
-  if (Touch04_Value < Touch04_Threshold) {
-    bool flush_wait = true;
-    while (flush_wait) {
-      delay(delaytime);
-      Touch04_Value = touchRead(TCH04_PIN);
-      if (Touch04_Value > Touch04_Threshold) { flush_wait = false; }
-    }
-  }
-  //
-  while (flush_card_active) {
-    // Print Serial Message About Mode
-    Serial.println("****************************************");
-    Serial.println("****************************************");
-    Serial.println("******** FLUSH CARD GAME MODE **********");
-    Serial.println("****************************************");
-    Serial.println("*** ACTIVATED BY LONG TOUCH ON TCH04 ***");
-    Serial.println("***      THE COWBOYS TEXT BUTTON     ***");
-    Serial.println("****************************************");
-    Serial.println("** LONG PRESS AGAIN TO EXIT THIS MODE **");
-    Serial.println("****************************************");
-    Serial.println("****************************************");
-    //
-    // Set a color to circle with based on a previous random color
-    int circle_rand = card_rand_1;
-    for(int f=1; f<6; f++){
-      if (f == 1) {
-        //
-        NEO01.setPixelColor(0, card_red[circle_rand], card_green[circle_rand], card_blue[circle_rand]);
-        NEO01.setPixelColor(1, 0, 0, 0);
-        NEO01.setPixelColor(2, 0, 0, 0);
-        NEO02.setPixelColor(1, 0, 0, 0);
-        NEO02.setPixelColor(0, 0, 0, 0);
-      } else if (f == 2) {
-        NEO01.setPixelColor(0, 0, 0, 0);
-        NEO01.setPixelColor(1, card_red[circle_rand], card_green[circle_rand], card_blue[circle_rand]);
-        NEO01.setPixelColor(2, 0, 0, 0);
-        NEO02.setPixelColor(1, 0, 0, 0);
-        NEO02.setPixelColor(0, 0, 0, 0);
-      } else if (f == 3) {
-        NEO01.setPixelColor(0, 0, 0, 0);
-        NEO01.setPixelColor(1, 0, 0, 0);
-        NEO01.setPixelColor(2, card_red[circle_rand], card_green[circle_rand], card_blue[circle_rand]);
-        NEO02.setPixelColor(1, 0, 0, 0);
-        NEO02.setPixelColor(0, 0, 0, 0);
-      } else if (f == 4) {
-        NEO01.setPixelColor(0, 0, 0, 0);
-        NEO01.setPixelColor(1, 0, 0, 0);
-        NEO01.setPixelColor(2, 0, 0, 0);
-        NEO02.setPixelColor(1, card_red[circle_rand], card_green[circle_rand], card_blue[circle_rand]);
-        NEO02.setPixelColor(0, 0, 0, 0);
-      } else if (f == 5) {
-        NEO01.setPixelColor(0, 0, 0, 0);
-        NEO01.setPixelColor(1, 0, 0, 0);
-        NEO01.setPixelColor(2, 0, 0, 0);
-        NEO02.setPixelColor(1, 0, 0, 0);
-        NEO02.setPixelColor(0, card_red[circle_rand], card_green[circle_rand], card_blue[circle_rand]);
-      }
-      //
-      // Show Neopixels
-      neo_show();
-      //
-      // Get Random Card Values
-      if (DebugSerial >= 2) { Serial.print("F="); Serial.print(f); }
-      int seedsrc1 = adc1_get_raw(ADC1_CHANNEL_0);
-      int seedsrc2 = analogRead(0);
-      int seedsrc3 = touchRead(TCH03_PIN);
-      int seedsrc4 = touchRead(TCH04_PIN);
-      int seedsrc5 = adc1_get_raw(ADC1_CHANNEL_7);
-      int seedsrc6 = adc1_get_raw(ADC1_CHANNEL_3);
-      int seedsrc7 = adc1_get_raw(ADC1_CHANNEL_6);
-      if (DebugSerial >= 2) {
-        Serial.print(" source="); Serial.print(seedsrc1);
-        Serial.print(" "); Serial.print(seedsrc2);
-        Serial.print(" "); Serial.print(seedsrc3);
-        Serial.print(" "); Serial.print(seedsrc4);
-        Serial.print(" "); Serial.print(seedsrc5);
-        Serial.print(" "); Serial.print(seedsrc6);
-        Serial.print(" "); Serial.print(seedsrc7);
-      }
-      if (card_rand_1 == 0) {
-        cardseed = (seedsrc1 + seedsrc2 + seedsrc3 + seedsrc4 + seedsrc5 + seedsrc6 + seedsrc7);
-        randomSeed(cardseed);
-      }
-      card_rand_1 = random(1, 255);
-      card_rand_1 = random(0, 7);
-      if (DebugSerial >= 2) { Serial.print(" card1="); Serial.print(card_rand_1); Serial.print("/"); Serial.print(cardseed); }
-      if (card_rand_2 == 0) {
-        cardseed = (seedsrc1 + seedsrc2 + seedsrc3 + seedsrc4 + seedsrc5 + seedsrc6 + seedsrc7);
-        randomSeed(cardseed);
-      }
-      card_rand_2 = random(1, 255);
-      card_rand_2 = random(0, 7);
-      if (DebugSerial >= 2) { Serial.print(" card2="); Serial.print(card_rand_2); Serial.print("/"); Serial.print(cardseed); }
-      if (card_rand_3 == 0) {
-        cardseed = (seedsrc1 + seedsrc2 + seedsrc3 + seedsrc4 + seedsrc5 + seedsrc6 + seedsrc7);
-        randomSeed(cardseed);
-      }
-      card_rand_3 = random(1, 255);
-      card_rand_3 = random(0, 7);
-      if (DebugSerial >= 2) { Serial.print(" card3="); Serial.print(card_rand_3); Serial.print("/"); Serial.print(cardseed); }
-      if (card_rand_4 == 0) {
-        cardseed = (seedsrc1 + seedsrc2 + seedsrc3 + seedsrc4 + seedsrc5 + seedsrc6 + seedsrc7);
-        randomSeed(cardseed);
-      }
-      card_rand_4 = random(1, 255);
-      card_rand_4 = random(0, 7);
-      if (DebugSerial >= 2) { Serial.print(" card4="); Serial.print(card_rand_4); Serial.print("/"); Serial.print(cardseed); }
-      if (card_rand_5 == 0) {
-        cardseed = (seedsrc1 + seedsrc2 + seedsrc3 + seedsrc4 + seedsrc5 + seedsrc6 + seedsrc7);
-        randomSeed(cardseed);
-      }
-      card_rand_5 = random(1, 255);
-      card_rand_5 = random(0, 7);
-      if (DebugSerial >= 2) { Serial.print(" card5="); Serial.print(card_rand_5); Serial.print("/"); Serial.println(cardseed); }
-      //
-      // Touch
-      //
-      Touch04_Value = touchRead(TCH04_PIN);
-      // Do Stuff If We Detect a Touch on TCH04_PIN
-      if (Touch04_Value < Touch04_Threshold) {
-        // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
-        if (DebugSerial >= 2) {
-          Serial.print("TCH04_TOUCHED="); Serial.print(Touch04_Value);
-          Serial.print("/"); Serial.print(Touch04_Threshold);
-          Serial.print("-"); Serial.print(Touch04_LoopCount);
-          String comma=",";
-          Serial.print(" C1 "); Serial.print(card_rand_1 + comma + card_red[card_rand_1] + comma + card_green[card_rand_1] + comma + card_blue[card_rand_1]);
-          Serial.print(" C2 "); Serial.print(card_rand_2 + comma + card_red[card_rand_2] + comma + card_green[card_rand_2] + comma + card_blue[card_rand_2]);
-          Serial.print(" C3 "); Serial.print(card_rand_3 + comma + card_red[card_rand_3] + comma + card_green[card_rand_3] + comma + card_blue[card_rand_3]);
-          Serial.print(" C4 "); Serial.print(card_rand_4 + comma + card_red[card_rand_4] + comma + card_green[card_rand_4] + comma + card_blue[card_rand_4]);
-          Serial.print(" C5 "); Serial.print(card_rand_5 + comma + card_red[card_rand_5] + comma + card_green[card_rand_5] + comma + card_blue[card_rand_5]);
-          Serial.println();
-        }
-        // STUFF - TCH04_PIN TOUCHED
-        Touch04_LoopCount++;
-        //
-        // Set Flush Card Colors based on randoms
-        NEO01.setPixelColor(0, card_red[card_rand_1], card_green[card_rand_1], card_blue[card_rand_1]);
-        NEO01.setPixelColor(1, card_red[card_rand_2], card_green[card_rand_2], card_blue[card_rand_2]);
-        NEO01.setPixelColor(2, card_red[card_rand_3], card_green[card_rand_3], card_blue[card_rand_3]);
-        NEO02.setPixelColor(0, card_red[card_rand_4], card_green[card_rand_4], card_blue[card_rand_4]);
-        NEO02.setPixelColor(1, card_red[card_rand_5], card_green[card_rand_5], card_blue[card_rand_5]);
-        //
-        // Show Neopixels
-        neo_show();
-        //
-        // Check if we have a Flush
-        if (card_rand_1 >= 4) { card_rand_1 = card_rand_1 - 4; }
-        if (card_rand_2 >= 4) { card_rand_2 = card_rand_2 - 4; }
-        if (card_rand_3 >= 4) { card_rand_3 = card_rand_3 - 4; }
-        if (card_rand_4 >= 4) { card_rand_4 = card_rand_4 - 4; }
-        if (card_rand_5 >= 4) { card_rand_5 = card_rand_5 - 4; }
-        if (card_rand_1 == card_rand_2 && card_rand_2 == card_rand_3 && card_rand_3 == card_rand_4 && card_rand_4 == card_rand_5) {
-          flush_win = true;
-        }
-        //
-        delay(2000);
-        break;
-      //
-      // Do Stuff If We DONT Detect a Touch on TCH04_PIN
-      } else {
-        // STUFF - TCH04_PIN NOT TOUCHED
-        Touch04_LoopCount = 0;
-      }
-      // Delay
-      delay(delaytime);
-    }
-    // break out if touch loop threshold met
-    if (Touch04_LoopCount > Touch04_Loop_Threshold) {
-      flush_card_active = false;
-    }
-    // Winner!
-    while (flush_win) {
-      // Don't update the lights any more, leave flush displayed but still check for touch
-      //
-      // DEBUG - Print card randoms to serial console for troubleshooting
-      if (DebugSerial >= 2) {
-        Serial.print("WINNER!!!");
-        Serial.print(" card1="); Serial.print(card_rand_1);
-        Serial.print(" card2="); Serial.print(card_rand_2);
-        Serial.print(" card3="); Serial.print(card_rand_3);
-        Serial.print(" card4="); Serial.print(card_rand_4);
-        Serial.print(" card5="); Serial.println(card_rand_5);
-      }
-      Touch04_Value = touchRead(TCH04_PIN);
-      if (Touch04_Value < Touch04_Threshold) {
-        // DEBUG - Print current Touch value/threshold to serial console for troubleshooting
-        if (DebugSerial >= 2) {
-          Serial.print("TCH04_TOUCHED="); Serial.print(Touch04_Value);
-          Serial.print("/"); Serial.print(Touch04_Threshold);
-          Serial.print("-"); Serial.println(Touch04_LoopCount);
-        }
-        // STUFF - TCH04_PIN TOUCHED
-        Touch04_LoopCount++;
-      } else {
-        // STUFF - TCH04_PIN NOT TOUCHED
-        Touch04_LoopCount = 0;
-      }
-      // Delay
-      delay(delaytime);
-      // break out if touch loop threshold met
-      if (Touch04_LoopCount > Touch04_Loop_Threshold) {
-        flush_win = false;
-      }
     }
   }
 }
