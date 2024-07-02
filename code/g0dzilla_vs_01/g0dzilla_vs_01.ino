@@ -45,6 +45,11 @@
 #define TCH03_PIN 15 // VS
 #define TCH04_PIN 13 // Minus-One
 
+//
+// Analog Inut Pins
+#define JSAO01 34
+#define JSAO02 35
+
 // NeoPixel Properties
 //
 // Define NeoPixel Strips - (Num pixels, pin to send signals, pixel type, signal rate)
@@ -52,6 +57,8 @@ Adafruit_NeoPixel NEO01 = Adafruit_NeoPixel(4, NEO01_DATA, NEO_RGB + NEO_KHZ800)
 Adafruit_NeoPixel NEO02 = Adafruit_NeoPixel(4, NEO02_DATA, NEO_RGB + NEO_KHZ800);
 // Status NeoPixel LED color mode default=0 green=1 blue=2 red=3
 int status_neo_mode = 0;
+// Main LED mode 0=default 1=battleone 2=battletwo
+int main_led_mode = 0;
 
 // PWM Properties
 //
@@ -115,6 +122,10 @@ int Touch01_Loop_Threshold = 3;
 int Touch02_Loop_Threshold = 3;
 int Touch03_Loop_Threshold = 3;
 int Touch04_Loop_Threshold = 3;
+
+// Analog Input Values
+int JSAO01_Value = 0;
+int JSAO02_Value = 0;
 
 // Loop Control Properties
 //
@@ -293,6 +304,8 @@ void loop(){
       // STUFF - TCH02_PIN TOUCHED
       if (Touch02_IntCount == 0){
         // Put stuff to happen once per iteration loop here
+        main_led_mode = main_led_mode + 1;
+        if (main_led_mode > 1) { main_led_mode = 0; }
       }
       // Put stuff to happen every iteration here
       Touch02_IntCount = 1;
@@ -375,39 +388,90 @@ void loop(){
     // **************************************************************
     //
 
-    //
-    // DEFAULT MODE
-    //
-    // First of three position groups i 0-84
-    if (pos < 85) {
+    // Read Analog Input Values
+    JSAO01_Value = analogRead(JSAO01);
+    JSAO02_Value = analogRead(JSAO02);
+    // Display Analog Values
+    if (DebugSerial >= 2) {
+      Serial.print(" SAO1="); Serial.print(JSAO01_Value);
+      Serial.print(" SAO2="); Serial.print(JSAO02_Value);
+    }
+
+    if (main_led_mode == 0) {
       //
-      // LED FUNCTIONS
-      neo_test(pos, 1);
-      ledPwmTest(pos, 1);
-      BI_blink_two(pos);
-    // Second of three position groups i 85-169 (pos-85 = 0-84)
-    } else if (pos < 170) {
-      pos = pos - 85;
+      // DEFAULT MODE
       //
-      // LED FUNCTIONS
-      neo_test(pos, 2);
-      ledPwmTest(pos, 2);
-      BI_blink_two(pos);
-    // Third of three position groups i 170-254 (pos-170 = 0-84)
-    } else {
-      pos = pos -170;
-      //
-      // LED FUNCTIONS
-      neo_test(pos, 3);
-      BI_blink_two(pos);
-      // Split third group 3/4 (pos 0-42) for even number of transitions
-      if (pos <43) {
+      // First of three position groups i 0-84
+      if (pos < 85) {
         //
-        ledPwmTest(pos, 3);
-      // Split third group 4/4 (pos 43-84) for even number of transitions
+        // LED FUNCTIONS
+        eyes_neo_colorshift(pos, 1);
+        g0dz_neo_colorshift(pos, 1);
+        ledPwmDefault(pos, 1);
+        BI_blink_two(pos);
+      // Second of three position groups i 85-169 (pos-85 = 0-84)
+      } else if (pos < 170) {
+        pos = pos - 85;
+        //
+        // LED FUNCTIONS
+        eyes_neo_colorshift(pos, 2);
+        g0dz_neo_colorshift(pos, 2);
+        ledPwmDefault(pos, 2);
+        BI_blink_two(pos);
+      // Third of three position groups i 170-254 (pos-170 = 0-84)
       } else {
+        pos = pos -170;
         //
-        ledPwmTest(pos, 4);
+        // LED FUNCTIONS
+        eyes_neo_colorshift(pos, 3);
+        g0dz_neo_colorshift(pos, 3);
+        ledPwmDefault(pos, 3);
+        BI_blink_two(pos);
+        // Split third group 3/4 (pos 0-42) for even number of transitions
+        if (pos <43) {
+          //
+          //ledPwmDefault(pos, 3);
+        // Split third group 4/4 (pos 43-84) for even number of transitions
+        } else {
+          //
+          //ledPwmDefault(pos, 4);
+        }
+      }
+    } else if (main_led_mode == 1) {
+      //
+      // BATTLE MODE
+      //
+      // First of three position groups i 0-84
+      if (pos < 85) {
+        //
+        // LED FUNCTIONS
+        g0dz_blast(pos, 1);
+        // ledPwmTest(pos, 1);
+        BI_blink_two(pos);
+      // Second of three position groups i 85-169 (pos-85 = 0-84)
+      } else if (pos < 170) {
+        pos = pos - 85;
+        //
+        // LED FUNCTIONS
+        g0dz_blast(pos, 2);
+        // ledPwmTest(pos, 2);
+        BI_blink_two(pos);
+      // Third of three position groups i 170-254 (pos-170 = 0-84)
+      } else {
+        pos = pos -170;
+        //
+        // LED FUNCTIONS
+        g0dz_blast(pos, 3);
+        BI_blink_two(pos);
+        // Split third group 3/4 (pos 0-42) for even number of transitions
+        if (pos <43) {
+          //
+          // ledPwmTest(pos, 3);
+        // Split third group 4/4 (pos 43-84) for even number of transitions
+        } else {
+          //
+          // ledPwmTest(pos, 4);
+        }
       }
     }
 
@@ -651,159 +715,118 @@ void ledPwmAllOff() {
 void ledPwmTest(uint8_t pos, uint8_t pass) {
   // Pass 1&2 pos 0-84
   //
-  if (pass < 3){
-    if (pos <= 11) {
-      ledcWrite(LED_D1_pwm, 255);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 0);
-    } else if (pos > 11 and pos <= 22) {
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 255);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 0);
-    } else if (pos > 22 and pos <= 33) {
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 255);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 0);
-    } else if (pos > 33 and pos <= 44) {
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 255);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 0);
-    } else if (pos > 44 and pos <= 55) {
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 255);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 0);
-    } else if (pos > 55 and pos <= 66) {
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 255);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 0);
-    } else if (pos > 66 and pos <= 77) {
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 255);
-      ledcWrite(LED_D8_pwm, 0);
-    } else { 
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 255);
-    }
-  }
-  // Pass 3&4 pos 0-42
+  // Pass 3 pos 0-42, make it 0-84
+  if (pass == 3){ pos = pos * 2; }
+  // Pass 4 pos 43-84, make it 0-84
+  if (pass == 4){ pos = (pos - 42) * 2; }
   //
-  if (pass < 3){
-    if (pos <= 5) {
-      ledcWrite(LED_D1_pwm, 255);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 0);
-    } else if (pos > 5 and pos <= 10) {
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 255);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 0);
-    } else if (pos > 10 and pos <= 15) {
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 255);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 0);
-    } else if (pos > 15 and pos <= 20) {
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 255);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 0);
-    } else if (pos > 20 and pos <= 25) {
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 255);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 0);
-    } else if (pos > 25 and pos <= 30) {
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 255);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 0);
-    } else if (pos > 35 and pos <= 40) {
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 255);
-      ledcWrite(LED_D8_pwm, 0);
-    } else { 
-      ledcWrite(LED_D1_pwm, 0);
-      ledcWrite(LED_D2_pwm, 0);
-      ledcWrite(LED_D3_pwm, 0);
-      ledcWrite(LED_D4_pwm, 0);
-      ledcWrite(LED_D5_pwm, 0);
-      ledcWrite(LED_D6_pwm, 0);
-      ledcWrite(LED_D7_pwm, 0);
-      ledcWrite(LED_D8_pwm, 255);
-    }
+  if (pos <= 10) {
+    ledcWrite(LED_D1_pwm, 255);
+    ledcWrite(LED_D2_pwm, 0);
+    ledcWrite(LED_D3_pwm, 0);
+    ledcWrite(LED_D4_pwm, 0);
+    ledcWrite(LED_D5_pwm, 0);
+    ledcWrite(LED_D6_pwm, 0);
+    ledcWrite(LED_D7_pwm, 0);
+    ledcWrite(LED_D8_pwm, 0);
+  } else if (pos > 10 and pos <= 20) {
+    ledcWrite(LED_D1_pwm, 0);
+    ledcWrite(LED_D2_pwm, 255);
+    ledcWrite(LED_D3_pwm, 0);
+    ledcWrite(LED_D4_pwm, 0);
+    ledcWrite(LED_D5_pwm, 0);
+    ledcWrite(LED_D6_pwm, 0);
+    ledcWrite(LED_D7_pwm, 0);
+    ledcWrite(LED_D8_pwm, 0);
+  } else if (pos > 20 and pos <= 30) {
+    ledcWrite(LED_D1_pwm, 0);
+    ledcWrite(LED_D2_pwm, 0);
+    ledcWrite(LED_D3_pwm, 255);
+    ledcWrite(LED_D4_pwm, 0);
+    ledcWrite(LED_D5_pwm, 0);
+    ledcWrite(LED_D6_pwm, 0);
+    ledcWrite(LED_D7_pwm, 0);
+    ledcWrite(LED_D8_pwm, 0);
+  } else if (pos > 30 and pos <= 40) {
+    ledcWrite(LED_D1_pwm, 0);
+    ledcWrite(LED_D2_pwm, 0);
+    ledcWrite(LED_D3_pwm, 0);
+    ledcWrite(LED_D4_pwm, 255);
+    ledcWrite(LED_D5_pwm, 0);
+    ledcWrite(LED_D6_pwm, 0);
+    ledcWrite(LED_D7_pwm, 0);
+    ledcWrite(LED_D8_pwm, 0);
+  } else if (pos > 40 and pos <= 50) {
+    ledcWrite(LED_D1_pwm, 0);
+    ledcWrite(LED_D2_pwm, 0);
+    ledcWrite(LED_D3_pwm, 0);
+    ledcWrite(LED_D4_pwm, 0);
+    ledcWrite(LED_D5_pwm, 255);
+    ledcWrite(LED_D6_pwm, 0);
+    ledcWrite(LED_D7_pwm, 0);
+    ledcWrite(LED_D8_pwm, 0);
+  } else if (pos > 50 and pos <= 60) {
+    ledcWrite(LED_D1_pwm, 0);
+    ledcWrite(LED_D2_pwm, 0);
+    ledcWrite(LED_D3_pwm, 0);
+    ledcWrite(LED_D4_pwm, 0);
+    ledcWrite(LED_D5_pwm, 0);
+    ledcWrite(LED_D6_pwm, 255);
+    ledcWrite(LED_D7_pwm, 0);
+    ledcWrite(LED_D8_pwm, 0);
+  } else if (pos > 60 and pos <= 70) {
+    ledcWrite(LED_D1_pwm, 0);
+    ledcWrite(LED_D2_pwm, 0);
+    ledcWrite(LED_D3_pwm, 0);
+    ledcWrite(LED_D4_pwm, 0);
+    ledcWrite(LED_D5_pwm, 0);
+    ledcWrite(LED_D6_pwm, 0);
+    ledcWrite(LED_D7_pwm, 255);
+    ledcWrite(LED_D8_pwm, 0);
+  } else if (pos > 70 and pos <= 80) {
+    ledcWrite(LED_D1_pwm, 0);
+    ledcWrite(LED_D2_pwm, 0);
+    ledcWrite(LED_D3_pwm, 0);
+    ledcWrite(LED_D4_pwm, 0);
+    ledcWrite(LED_D5_pwm, 0);
+    ledcWrite(LED_D6_pwm, 0);
+    ledcWrite(LED_D7_pwm, 0);
+    ledcWrite(LED_D8_pwm, 255);
+  } else { 
+    ledcWrite(LED_D1_pwm, 0);
+    ledcWrite(LED_D2_pwm, 0);
+    ledcWrite(LED_D3_pwm, 0);
+    ledcWrite(LED_D4_pwm, 0);
+    ledcWrite(LED_D5_pwm, 0);
+    ledcWrite(LED_D6_pwm, 0);
+    ledcWrite(LED_D7_pwm, 0);
+    ledcWrite(LED_D8_pwm, 0);
   }
-
+}
+//
+void ledPwmDefault(uint8_t pos, uint8_t pass) {
+  // lightlevel var used to set the pwm value
+  uint8_t lightlevel = 0;
+  if (pass == 1){
+    if (pos <= 42) { lightlevel = (pos *6); }
+    if (pos > 42) { lightlevel = 255 - (pos *6); }
+    ledcWrite(LED_D5_pwm, int(lightlevel));
+  }
+  if (pass == 2){
+    if (pos <= 42) { lightlevel = (pos *6); }
+    if (pos > 42) { lightlevel = 255 - (pos *6); }
+    ledcWrite(LED_D7_pwm, int(lightlevel));
+    ledcWrite(LED_D8_pwm, int(lightlevel));
+  }
+  if (pass == 3){
+    if (pos <= 42) { lightlevel = (pos *6); }
+    if (pos > 42) { lightlevel = 255 - (pos *6); }
+    ledcWrite(LED_D6_pwm, int(lightlevel));
+  }
+  ledcWrite(LED_D1_pwm, 0);
+  ledcWrite(LED_D2_pwm, 0);
+  ledcWrite(LED_D3_pwm, 0);
+  ledcWrite(LED_D4_pwm, 0);
 }
 //
 void ledPwmAlternate(uint8_t pos, uint8_t pass) {
@@ -938,6 +961,162 @@ void neo_test(uint8_t pos, uint8_t pass) {
   }
 }
 //
+void g0dz_blast(uint8_t pos, uint8_t pass) {
+  // int blastseed = (analogRead(0) + touchRead(TCH03_PIN) + touchRead(TCH02_PIN));
+  // randomSeed(blastseed);
+  // int blastone = random(0, 64); int blastred = random(0, 255);
+  // int blasttwo = random(0, 64); int blastgreen = random(0, 255);
+  // int blastthr = random(0, 64); int blastblue = random(0, 255);
+  //
+  // Pass 1-3 pos 0-84
+  if (pass < 4){
+    NEO01.setPixelColor(0, 0, 0, 0);
+    NEO01.setPixelColor(1, 0, 0, 0);
+    NEO01.setPixelColor(2, 0, 0, 0);
+    NEO02.setPixelColor(0, 0, 0, 0);
+    NEO02.setPixelColor(1, 0, 0, 0);
+    NEO02.setPixelColor(2, 0, 0, 0);
+    NEO02.setPixelColor(3, 0, 0, 0);
+    NEO01.setPixelColor(3, 0, 0, 0);
+    // regular leds
+    ledcWrite(LED_D1_pwm, 0);
+    ledcWrite(LED_D2_pwm, 0);
+    ledcWrite(LED_D3_pwm, 0);
+    ledcWrite(LED_D4_pwm, 0);
+    ledcWrite(LED_D5_pwm, 0);
+    ledcWrite(LED_D6_pwm, 0);
+    ledcWrite(LED_D7_pwm, 0);
+    ledcWrite(LED_D8_pwm, 0);
+    if (pos <= 5) {
+      NEO02.setPixelColor(0, 255, 0, 0);
+      NEO02.setPixelColor(1, 0, 0, 0);
+      NEO02.setPixelColor(2, 0, 0, 0);
+      NEO02.setPixelColor(3, 0, 0, 0);
+      NEO01.setPixelColor(3, 0, 0, 0);
+      ledcWrite(LED_D2_pwm, 255);
+    } else if (pos > 5 and pos <= 10) {
+      NEO02.setPixelColor(0, 0, 0, 0);
+      NEO02.setPixelColor(1, 255, 0, 0);
+      NEO02.setPixelColor(2, 0, 0, 0);
+      NEO02.setPixelColor(3, 0, 0, 0);
+      NEO01.setPixelColor(3, 0, 0, 0);
+      ledcWrite(LED_D3_pwm, 255);
+    } else if (pos > 10 and pos <= 15) {
+      NEO02.setPixelColor(0, 0, 0, 0);
+      NEO02.setPixelColor(1, 0, 0, 0);
+      NEO02.setPixelColor(2, 255, 0, 0);
+      NEO02.setPixelColor(3, 0, 0, 0);
+      NEO01.setPixelColor(3, 0, 0, 0);
+      ledcWrite(LED_D4_pwm, 255);
+    } else if (pos > 15 and pos <= 20) {
+      NEO02.setPixelColor(0, 0, 0, 0);
+      NEO02.setPixelColor(1, 0, 0, 0);
+      NEO02.setPixelColor(2, 0, 0, 0);
+      NEO02.setPixelColor(3, 255, 0, 0);
+      NEO01.setPixelColor(3, 0, 0, 0);
+      ledcWrite(LED_D2_pwm, 255);
+    } else if (pos > 20 and pos <= 25) {
+      NEO02.setPixelColor(0, 0, 0, 0);
+      NEO02.setPixelColor(1, 0, 0, 0);
+      NEO02.setPixelColor(2, 0, 0, 0);
+      NEO02.setPixelColor(3, 0, 0, 0);
+      NEO01.setPixelColor(3, 255, 0, 0);
+      ledcWrite(LED_D3_pwm, 255);
+    } else if (pos > 25 and pos <= 30) {
+      NEO02.setPixelColor(0, 255, 0, 0);
+      NEO02.setPixelColor(1, 0, 0, 0);
+      NEO02.setPixelColor(2, 0, 0, 0);
+      NEO02.setPixelColor(3, 0, 0, 0);
+      NEO01.setPixelColor(3, 0, 0, 0);
+      ledcWrite(LED_D4_pwm, 255);
+    } else if (pos > 30 and pos <= 35) {
+      NEO02.setPixelColor(0, 0, 0, 0);
+      NEO02.setPixelColor(1, 255, 0, 0);
+      NEO02.setPixelColor(2, 0, 0, 0);
+      NEO02.setPixelColor(3, 0, 0, 0);
+      NEO01.setPixelColor(3, 0, 0, 0);
+      ledcWrite(LED_D2_pwm, 255);
+    } else if (pos > 35 and pos <= 40) {
+      NEO02.setPixelColor(0, 0, 0, 0);
+      NEO02.setPixelColor(1, 0, 0, 0);
+      NEO02.setPixelColor(2, 255, 0, 0);
+      NEO02.setPixelColor(3, 0, 0, 0);
+      NEO01.setPixelColor(3, 0, 0, 0);
+      ledcWrite(LED_D3_pwm, 255);
+    } else if (pos > 40 and pos <= 45) {
+      NEO02.setPixelColor(0, 0, 0, 0);
+      NEO02.setPixelColor(1, 0, 0, 0);
+      NEO02.setPixelColor(2, 0, 0, 0);
+      NEO02.setPixelColor(3, 255, 0, 0);
+      NEO01.setPixelColor(3, 0, 0, 0);
+      ledcWrite(LED_D4_pwm, 255);
+    } else if (pos > 45 and pos <= 50) {
+      NEO02.setPixelColor(0, 0, 0, 0);
+      NEO02.setPixelColor(1, 0, 0, 0);
+      NEO02.setPixelColor(2, 0, 0, 0);
+      NEO02.setPixelColor(3, 0, 0, 0);
+      NEO01.setPixelColor(3, 255, 0, 0);
+      ledcWrite(LED_D2_pwm, 255);
+    } else if (pos > 50 and pos <= 55) {
+      NEO02.setPixelColor(0, 255, 0, 0);
+      NEO02.setPixelColor(1, 0, 0, 0);
+      NEO02.setPixelColor(2, 0, 0, 0);
+      NEO02.setPixelColor(3, 0, 0, 0);
+      NEO01.setPixelColor(3, 0, 0, 0);
+      ledcWrite(LED_D3_pwm, 255);
+    } else if (pos > 55 and pos <= 60) {
+      NEO02.setPixelColor(0, 0, 0, 0);
+      NEO02.setPixelColor(1, 255, 0, 0);
+      NEO02.setPixelColor(2, 0, 0, 0);
+      NEO02.setPixelColor(3, 0, 0, 0);
+      NEO01.setPixelColor(3, 0, 0, 0);
+      ledcWrite(LED_D4_pwm, 255);
+    } else if (pos > 60 and pos <= 65) {
+      NEO02.setPixelColor(0, 0, 0, 0);
+      NEO02.setPixelColor(1, 0, 0, 0);
+      NEO02.setPixelColor(2, 255, 0, 0);
+      NEO02.setPixelColor(3, 0, 0, 0);
+      NEO01.setPixelColor(3, 0, 0, 0);
+      ledcWrite(LED_D2_pwm, 255);
+    } else if (pos > 65 and pos <= 70) {
+      NEO02.setPixelColor(0, 0, 0, 0);
+      NEO02.setPixelColor(1, 0, 0, 0);
+      NEO02.setPixelColor(2, 0, 0, 0);
+      NEO02.setPixelColor(3, 255, 0, 0);
+      NEO01.setPixelColor(3, 0, 0, 0);
+      ledcWrite(LED_D3_pwm, 255);
+    } else if (pos > 70 and pos <= 75) {
+      NEO02.setPixelColor(0, 0, 0, 0);
+      NEO02.setPixelColor(1, 0, 0, 0);
+      NEO02.setPixelColor(2, 0, 0, 0);
+      NEO02.setPixelColor(3, 0, 0, 0);
+      NEO01.setPixelColor(3, 255, 0, 0);
+      ledcWrite(LED_D4_pwm, 255);
+    } else if (pos > 75 and pos <= 78) {
+      NEO01.setPixelColor(0, 255, 0, 0);
+      NEO01.setPixelColor(1, 255, 0, 0);
+      NEO01.setPixelColor(2, 255, 0, 0);
+      ledcWrite(LED_D1_pwm, 255);
+      ledcWrite(LED_D5_pwm, 255);
+      ledcWrite(LED_D6_pwm, 255);
+    } else if (pos > 78 and pos <= 81) {
+      NEO01.setPixelColor(0, 0, 0, 0);
+      NEO01.setPixelColor(1, 0, 0, 0);
+      NEO01.setPixelColor(2, 0, 0, 0);
+      ledcWrite(LED_D1_pwm, 100);
+      ledcWrite(LED_D5_pwm, 100);
+      ledcWrite(LED_D6_pwm, 100);
+    } else if (pos > 81) {
+      NEO01.setPixelColor(0, 255, 0, 0);
+      NEO01.setPixelColor(1, 255, 0, 0);
+      NEO01.setPixelColor(2, 255, 0, 0);
+      ledcWrite(LED_D1_pwm, 255);
+      ledcWrite(LED_D5_pwm, 255);
+      ledcWrite(LED_D6_pwm, 255);
+    }
+  }
+}
+//
 void table_neo_colorshift(uint8_t pos, uint8_t pass) {
   // If T1 or T5 were pressed dont do anything here
   if (Touch01_IntCount > 0 || Touch04_IntCount > 0) { pass = 0; }
@@ -991,6 +1170,66 @@ void threeks_neo_colorshift(uint8_t pos, uint8_t pass) {
   // Pass 3 pos 0-84
   if (pass == 3){
     // Green 255-0 Blue 0-255
+    NEO02.setPixelColor(2, 0, int(255 - (pos*3)), int(pos*3));
+  }
+}
+//
+void eyes_neo_colorshift(uint8_t pos, uint8_t pass) {
+  // Pass 1 pos 0-84
+  if (pass == 1){
+    // Blue 255-0 Red 0-255
+    NEO01.setPixelColor(1, int(pos*3), 0, int(255 - pos*3));
+    NEO01.setPixelColor(2, int(pos*3), 0, int(255 - pos*3));
+  }
+  // Pass 2 pos 0-84
+  if (pass == 2){
+    // Red 255-0 Green 0-255
+    NEO01.setPixelColor(1, int(255 - (pos*3)), int(pos*3), 0);
+    NEO01.setPixelColor(2, int(255 - (pos*3)), int(pos*3), 0);
+  }
+  // Pass 3 pos 0-84
+  if (pass == 3){
+    // Green 255-0 Blue 0-255
+    NEO01.setPixelColor(1, 0, int(255 - (pos*3)), int(pos*3));
+    NEO01.setPixelColor(2, 0, int(255 - (pos*3)), int(pos*3));
+  }
+}
+//
+void g0dz_neo_colorshift(uint8_t pos, uint8_t pass) {
+  // Pass 1 pos 0-84
+  if (pass == 1){
+    // Blue 255-0 Red 0-255
+    NEO01.setPixelColor(0, int(pos*3), 0, int(255 - pos*3));
+    NEO02.setPixelColor(2, int(pos*3), 0, int(255 - pos*3));
+    // Red 255-0 Green 0-255
+    NEO02.setPixelColor(0, int(255 - (pos*3)), int(pos*3), 0);
+    NEO02.setPixelColor(3, int(255 - (pos*3)), int(pos*3), 0);
+    // Green 255-0 Blue 0-255
+    NEO02.setPixelColor(1, 0, int(255 - (pos*3)), int(pos*3));
+    NEO01.setPixelColor(3, 0, int(255 - (pos*3)), int(pos*3));
+  }
+  // Pass 2 pos 0-84
+  if (pass == 2){
+    // Blue 255-0 Red 0-255
+    NEO02.setPixelColor(1, int(pos*3), 0, int(255 - pos*3));
+    NEO01.setPixelColor(3, int(pos*3), 0, int(255 - pos*3));
+    // Red 255-0 Green 0-255
+    NEO01.setPixelColor(0, int(255 - (pos*3)), int(pos*3), 0);
+    NEO02.setPixelColor(2, int(255 - (pos*3)), int(pos*3), 0);
+    // Green 255-0 Blue 0-255
+    NEO02.setPixelColor(0, 0, int(255 - (pos*3)), int(pos*3));
+    NEO02.setPixelColor(3, 0, int(255 - (pos*3)), int(pos*3));
+  }
+  // Pass 3 pos 0-84
+  if (pass == 3){
+    // Blue 255-0 Red 0-255
+    NEO02.setPixelColor(0, int(pos*3), 0, int(255 - pos*3));
+    NEO02.setPixelColor(3, int(pos*3), 0, int(255 - pos*3));
+    // Red 255-0 Green 0-255
+    NEO02.setPixelColor(1, int(255 - (pos*3)), int(pos*3), 0);
+    NEO01.setPixelColor(3, int(255 - (pos*3)), int(pos*3), 0);
+    // Green 255-0 Blue 0-255
+    NEO01.setPixelColor(0, 0, int(255 - (pos*3)), int(pos*3));
     NEO02.setPixelColor(2, 0, int(255 - (pos*3)), int(pos*3));
   }
 }
