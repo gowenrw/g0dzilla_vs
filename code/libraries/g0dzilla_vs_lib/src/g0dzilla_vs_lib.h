@@ -10,6 +10,6 @@
 #include <DNSServer.h>
 #include <ESPAsyncWebSrv.h>
 
-void cvdAdventureMain();
+void gdlAdventureMain();
 
 #endif
