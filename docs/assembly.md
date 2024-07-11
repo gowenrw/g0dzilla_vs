@@ -227,9 +227,14 @@ This is the list of components that are provided in the kit
     * Solder all the LED connections
     * When cooled cut the component legs off at the top of the solder joints (do not cut into the solder joint)
 
+* SAO Male Keyed Hooded 2x3 Headers
+  * Each SAO has a 2.54mm 2x3 Pin Keyed Hooded Male Header are labeled JSAO on the back side of the PCB
+  * The header should be placed with the key notch towards the top of the PCB as indicated by the drawing in the PCB silk
+  * Solder all the header connections
+
 ## Final Assembly Steps
 
-* Optional SAO mini lanyards
+* Optional SAO Mini Lanyards
   * Place a mini lanyard on each SAO
     * Insert the thread side of the lanyard into on of the bottom SAO holes extending a small loop of lanyard thread
     * Feed the keyring side of the lanyard through the loop and pull tight
