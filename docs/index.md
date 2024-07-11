@@ -85,14 +85,20 @@ To charge the battery follow these steps:
 * Turn the power switch to ON (towards the top of the badge) which will power on the badge if the battery has any charge remaining.  But, even if the badge does not power on the switch should be in the ON position. ![Power ON Image](images/BadgeBattChg01.jpg)
 * Plug in a USB-C cable to the badge dev board and apply power either from a PC or wall charger. ![USB Cable Image](images/BadgeBattChg02.jpg)
 * On the back of the badge you should see the battery charge indicator light lit up.  If it is not then repeat the first two steps to try again.  This indicator light should flash if it does not see a battery connected and will turn off when a connected battery is fully charged. ![Charge Indicator Image](images/BadgeBattChg03.jpg)
-* The powered SAOs on the front of the badge should be removed while charging. ![Remove SAOs Image](images/BadgeBattChg04.jpg)
+* The powered SAOs on the front of the badge should be removed while charging. This will allow for less power drain while charging from those LEDs being removed.  But more imortantly stops shining those bright lights. ![Remove SAOs Image](images/BadgeBattChg04.jpg)
 * It should take about 3 to 4 hours to fully charge a battery from fully discharged at which point the battery charge indicator light will turn off.
 * Since it can be annoying to have the badge flashing all its LEDs while charging we added a LED-Off mode that can be activated by pressing on the Monarch Logo button (located on the back side of the middle PCB) for a LONG PRESS press of about 20 to 30 seconds. ![Logo Press Image](images/BadgeBattChg05.jpg)
 * In the LED-Off mode all the badge LEDs will turn off except for the two on the ESP dev board.  The battery charge indicator light should be on if it charging and the on-board LED will flash once every 20 seconds or so.  The flashing LED is there to tell you the badge is still powered on even if the charge is done and the charge light turns off. This LED mode can be disabled by long pressing the Monarch Logo again or by power cycling the badge (including disconnecting the USB) ![LED Off Mode Image](images/BadgeBattChg06.jpg)
 
 ## Touching Godzilla Text - Change badge LED mode
 
-Pressing the word "Godzilla" will change the LED mode.  The default mode color cycles all the neopixels and slowly pulses some of the white LEDs.  There is a battle mode where Godzilla is animated fighting.  Other modes will be added, but these two modes are what is shipping with the badges. 
+Pressing the word "Godzilla" will change the LED mode.
+
+The default mode color cycles all the neopixels and slowly pulses some of the white LEDs.
+
+There is a battle mode where Godzilla is animated fighting.
+
+Other modes will be added as time permits, but these two modes are what is shipping with the badges. 
 
 ## Touching VS Text - Boop
 
@@ -109,12 +115,17 @@ Holding a long press of 20 seconds on the Monarch Logo will enter the LED-Off mo
 Pressing the Godzilla Minus One Logo will flash all the Neopixel LEDs in a random color briefly in a boop effect.
 
 Holding a long press of 20 seconds on the Godzilla Minus One Logo will enter the Cryppto CTF Mode.
+
 This is a crypto challenge game that is launched on a local wireless ap and web server.
+
 When this mode is activated the eyes on the badge will turn solid red and the badge will launch a wireless access point with the name "GDZL-badge-<MAC>" and a web server on 192.168.1.31
+
 Connect to the access point which is open and does not require a password, then browse http://192.168.1.31 to start the crypto challenge.
+
 This Mode can be disabled by long pressing the Godzilla Minus One Logo again or by power cycling the badge.
 
 ## Silkscreen Crypto Challenge
 
 In addition to the web based crypto challenge there is an additional crypto challenge built into the silkscreen layer on the back of the badge.
+
 While similar in style and layout of the web based challenge these are seperate challenges that do not depend upon each other for solving.
